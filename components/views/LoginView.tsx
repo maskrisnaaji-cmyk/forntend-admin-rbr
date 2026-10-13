@@ -25,8 +25,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
-      setErrorMsg('Silakan isi ID Pengguna / Email dan Kata Sandi');
+    if (!username.trim() || !password.trim()) {
+      setErrorMsg('Silakan isi Email / Username dan Password');
       return;
     }
     
@@ -36,23 +36,22 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#fdfbf7]">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-[#FDFBF7]">
       {/* SISI KIRI: BANNER MERAH MAROON (PORTAL AKSES ADMIN & STAFF) */}
-      <div className="relative flex flex-1 flex-col justify-between bg-[#6A1B1A] p-12 text-white shadow-2xl">
+      <div className="relative flex flex-1 flex-col justify-between bg-[#6B1D2F] p-8 md:p-12 text-white shadow-2xl">
         {/* Background Overlay / Ornament Subtle */}
-       {/* Background Overlay / Ornament Subtle */}
-          <div 
-            className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
-              backgroundSize: '20px 20px',
-            }}
-          />
+        <div 
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
 
         {/* Header Logo Left */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Wadah Logo Emas Berlekuk Sesuai Frame */}
+            {/* Wadah Logo Emas */}
             <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[#D4AF37] p-1.5 shadow-md border border-amber-300/30">
               <img 
                 src="/rbr.jpeg" 
@@ -69,8 +68,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               </p>
             </div>
           </div>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-white/80 border border-white/10">
-           
+          <span className="hidden sm:inline-block rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-white/80 border border-white/10">
+            Admin Portal v1.0
           </span>
         </div>
 
@@ -81,12 +80,12 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             SISTEM INTERNAL RUMAH BUDAYA
           </div>
 
-          <h1 className="font-serif text-4xl font-extrabold leading-tight text-white mb-4">
+          <h1 className="font-serif text-3xl md:text-4xl font-extrabold leading-tight text-white mb-4">
             Portal Akses Admin & Staff
           </h1>
 
           <p className="max-w-md text-xs leading-relaxed text-white/80 mb-8">
-            Akses terintegrasi untuk pengelolaan KEDAI KOPI, Agenda Budaya & Pustaka Naskah dalam satu panel.
+            Akses terintegrasi untuk pengelolaan Kedai Kopi, Agenda Budaya, Pustaka Naskah, dan verifikasi anggota dalam satu panel.
           </p>
 
           {/* 3 Cards Highlight */}
@@ -109,7 +108,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-white">Validator & Tiket Pentas Pembacaan</h4>
-                <p className="text-[11px] text-white/60">Scan QR kupon tiket, reservasi kursi & jadwal acara budaya.</p>
+                <p className="text-[11px] text-white/60">Scan QR tiket kupon, reservasi kursi & jadwal acara budaya.</p>
               </div>
             </div>
 
@@ -120,7 +119,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-white">Sirkulasi Naskah & Preservasi Pustaka</h4>
-                <p className="text-[11px] text-white/60">Peminjaman buku, arsip Jawa kuno & registrasi keanggotaan.</p>
+                <p className="text-[11px] text-white/60">Peminjaman buku, arsip Jawa kuno & keanggotaan.</p>
               </div>
             </div>
           </div>
@@ -129,14 +128,14 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         {/* Footer Left */}
         <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] text-white/50">
           <p>© Rumah Budaya Ratna - Hak Cipta Dilindungi</p>
-          <p></p>
+          <p>Yogyakarta</p>
         </div>
       </div>
 
       {/* SISI KANAN: FORM LOGIN ADMIN (BACKGROUND CREAM PALE) */}
-      <div className="flex w-120 shrink-0 flex-col justify-between bg-[#FAF7F2] p-12">
+      <div className="flex w-full lg:w-120 shrink-0 flex-col justify-between bg-[#FDFBF7] p-8 md:p-12">
         {/* Top Header Right */}
-        <div className="flex items-center justify-between text-xs text-stone-500">
+        <div className="flex items-center justify-between text-xs text-stone-500 mb-6 lg:mb-0">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <span>Sistem Operasional</span>
@@ -145,16 +144,16 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         </div>
 
         {/* Form Container */}
-        <div className="my-auto">
+        <div className="my-auto py-6">
           <div className="mb-6">
-            <span className="text-[10px] font-bold tracking-widest text-[#6A1B1A] uppercase">
+            <span className="text-[10px] font-bold tracking-widest text-[#6B1D2F] uppercase">
               AKSES TERRESTRIAL
             </span>
             <h2 className="font-serif text-2xl font-bold text-stone-900 mt-1">
               Selamat Datang, Masuk ke Akun
             </h2>
             <p className="text-xs text-stone-500 mt-1">
-              Gunakan ID Akun Resmi atau Email Staff untuk mengakses sistem operasional.
+              Gunakan Email/Username dan Password staff untuk mengakses sistem operasional.
             </p>
           </div>
 
@@ -165,10 +164,10 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Input Username / Email */}
+            {/* Input Email / Username */}
             <div>
               <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                ID Pengguna / Email Staff
+                Email / Username
               </label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3 text-stone-400" size={16} />
@@ -176,8 +175,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Masukkan ID / Email Staff"
-                  className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6A1B1A] focus:outline-none focus:ring-1 focus:ring-[#6A1B1A]"
+                  placeholder="admin@rumahbudayaratna.com atau admin"
+                  className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F]"
                 />
               </div>
             </div>
@@ -186,9 +185,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wider">
-                  Kata Sandi
+                  Password (Kata Sandi)
                 </label>
-                <a href="#" className="text-[11px] font-semibold text-[#6A1B1A] hover:underline">
+                <a href="#" className="text-[11px] font-semibold text-[#6B1D2F] hover:underline">
                   Lupa Password?
                 </a>
               </div>
@@ -199,7 +198,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-10 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6A1B1A] focus:outline-none focus:ring-1 focus:ring-[#6A1B1A]"
+                  className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-10 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F]"
                 />
                 <button
                   type="button"
@@ -218,7 +217,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-stone-300 text-[#6A1B1A] focus:ring-[#6A1B1A]"
+                  className="h-4 w-4 rounded border-stone-300 text-[#6B1D2F] focus:ring-[#6B1D2F]"
                 />
                 <span className="text-xs text-stone-600">Ingat Saya di Perangkat Ini</span>
               </label>
@@ -227,9 +226,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             {/* Button Submit */}
             <button
               type="submit"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#6A1B1A] py-3 text-xs font-bold text-white shadow-lg transition-all hover:bg-[#521413] hover:shadow-xl active:scale-[0.99]"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] py-3 text-xs font-bold text-white shadow-lg transition-all hover:bg-[#541624] hover:shadow-xl active:scale-[0.99]"
             >
-              <span>MASUK KE DASHBOARD</span>
+              <span>Login ke Dashboard</span>
               <ArrowRight size={16} />
             </button>
           </form>
@@ -237,7 +236,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
         {/* Footer Right */}
         <div className="text-center text-[11px] text-stone-400 border-t border-stone-200/60 pt-4">
-          <p>Kendala akses akun? Hubungi <span className="font-semibold text-stone-600">Teknisi/IT Support</span></p>
+          <p>Kendala akses akun? Hubungi <span className="font-semibold text-stone-600">Teknisi / IT Support</span></p>
         </div>
       </div>
     </div>

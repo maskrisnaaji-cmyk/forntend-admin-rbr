@@ -14,9 +14,10 @@ import {
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'kedai', label: 'Kedai Kopi & Order', icon: Coffee },
@@ -77,7 +78,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               <p className="text-[10px] text-white/60">Admin Operasional</p>
             </div>
           </div>
-          <button className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+          <button 
+            onClick={onLogout}
+            title="Keluar dari akun admin"
+            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+          >
             <LogOut size={16} />
           </button>
         </div>
