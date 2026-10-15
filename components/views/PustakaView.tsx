@@ -99,23 +99,23 @@ export const PustakaView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-brand-text">Pustaka & Katalog Naskah</h1>
+          <h1 className="text-xl font-bold text-brand-text">Pustaka &amp; Katalog Naskah</h1>
           <p className="text-xs text-brand-muted">Kelola koleksi naskah kuno, buku sejarah, dan aktivitas peminjaman</p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors"
+          className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors"
         >
           <Plus size={16} />
           <span>Tambah Judul Pustaka</span>
         </button>
       </div>
 
-      <div className="rounded-2xl border border-brand-cream-accent bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="relative w-72">
+      <div className="rounded-2xl border border-brand-cream-accent bg-white p-4 sm:p-5 shadow-sm">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-2.5 text-brand-muted" size={16} />
             <input
               type="text"
@@ -128,17 +128,18 @@ export const PustakaView = () => {
           <span className="text-xs font-semibold text-brand-muted">Total: {books.length} Judul Terdata</span>
         </div>
 
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-brand-cream-accent text-brand-muted">
-              <th className="py-3 px-2">Kode Buku</th>
-              <th className="py-3 px-2">Judul Pustaka</th>
-              <th className="py-3 px-2">Kategori</th>
-              <th className="py-3 px-2">Status</th>
-              <th className="py-3 px-2">Peminjam saat ini</th>
-              <th className="py-3 px-2 text-right">Aksi</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-brand-cream-accent text-brand-muted">
+                <th className="py-3 px-2">Kode Buku</th>
+                <th className="py-3 px-2">Judul Pustaka</th>
+                <th className="py-3 px-2">Kategori</th>
+                <th className="py-3 px-2">Status</th>
+                <th className="py-3 px-2">Peminjam saat ini</th>
+                <th className="py-3 px-2 text-right">Aksi</th>
+              </tr>
+            </thead>
           <tbody className="divide-y divide-brand-cream-accent">
             {filteredBooks.map((buku) => (
               <tr key={buku.code} className="hover:bg-brand-cream-card/50">
@@ -183,12 +184,13 @@ export const PustakaView = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Modal Konfirmasi Hapus */}
       {deleteModalOpen && bookToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-sm rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
               <Trash2 size={22} />
             </div>
@@ -219,7 +221,7 @@ export const PustakaView = () => {
       {/* Modal Tambah / Edit Pustaka */}
       {formModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <h3 className="text-sm font-bold text-brand-text">
                 {isEditing ? `Edit Pustaka ${currentBook.code}` : 'Tambah Judul Pustaka'}
@@ -234,7 +236,7 @@ export const PustakaView = () => {
             </div>
 
             <form onSubmit={handleSaveBook} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block font-semibold text-brand-text">Kode Buku</label>
                   <input

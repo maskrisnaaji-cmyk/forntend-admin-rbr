@@ -90,23 +90,23 @@ export const AnggotaView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-brand-text">Keanggotaan & Kode Promo</h1>
+          <h1 className="text-xl font-bold text-brand-text">Keanggotaan &amp; Kode Promo</h1>
           <p className="text-xs text-brand-muted">Kelola data member komunitas kebudayaan dan diskon khusus</p>
         </div>
         <button
           onClick={handleOpenCreateCoupon}
-          className="flex items-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow hover:bg-amber-400 transition-colors"
+          className="flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow hover:bg-amber-400 transition-colors"
         >
           <Plus size={16} />
           <span>Buat Kupon Promo</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* List Anggota */}
-        <div className="rounded-2xl border border-brand-cream-accent bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-brand-cream-accent bg-white p-4 sm:p-5 shadow-sm">
           <h3 className="mb-3 text-sm font-bold text-brand-text">Anggota Terbaru</h3>
           <div className="space-y-3">
             {members.map((m) => (
@@ -230,7 +230,7 @@ export const AnggotaView = () => {
       {/* Modal Buat Kupon Promo */}
       {couponModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <h3 className="text-sm font-bold text-brand-text">Buat Kupon Promo Baru</h3>
               <button

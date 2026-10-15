@@ -14,7 +14,7 @@ export const PengaturanView = () => {
       <div className="space-y-4 rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-sm">
         <h3 className="border-b border-brand-cream-accent pb-2 text-sm font-bold text-brand-text">Informasi Operasional</h3>
         
-        <div className="grid grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
             <label className="mb-1 block font-semibold text-brand-text">Nama Tempat</label>
             <input type="text" defaultValue="Rumah Budaya Ratna" className="w-full rounded-xl border border-brand-cream-accent p-2.5 focus:border-brand-maroon focus:outline-none" />

@@ -99,21 +99,21 @@ export const AgendaView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-brand-text">Agenda Budaya & Kuota Tiket</h1>
+          <h1 className="text-xl font-bold text-brand-text">Agenda Budaya &amp; Kuota Tiket</h1>
           <p className="text-xs text-brand-muted">Atur penjadwalan acara kebudayaan dan pantau kuota penonton</p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow hover:bg-amber-400 transition-colors"
+          className="flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow hover:bg-amber-400 transition-colors"
         >
           <Plus size={16} />
           <span>Tambah Event Baru</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => {
           const percentage = Math.round((event.sold / event.total) * 100);
           return (
@@ -208,7 +208,7 @@ export const AgendaView = () => {
       {/* Modal Tambah / Edit Agenda */}
       {formModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <h3 className="text-sm font-bold text-brand-text">
                 {isEditing ? 'Edit Agenda Budaya' : 'Tambah Event Baru'}
@@ -235,7 +235,7 @@ export const AgendaView = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block font-semibold text-brand-text">Tanggal</label>
                   <input
@@ -272,7 +272,7 @@ export const AgendaView = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                 <div>
                   <label className="mb-1 block font-semibold text-brand-text">Harga Tiket</label>
                   <input

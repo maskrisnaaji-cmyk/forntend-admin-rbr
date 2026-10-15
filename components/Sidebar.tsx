@@ -10,16 +10,25 @@ import {
   BookOpen, 
   Users, 
   Settings, 
-  LogOut 
+  LogOut,
+  X 
 } from 'lucide-react';
 
 interface SidebarProps {
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   onLogout?: () => void;
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  activeTab, 
+  setActiveTab, 
+  onLogout,
+  isOpenMobile = false,
+  onCloseMobile
+}) => {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -45,10 +54,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
   };
 
   return (
-    <aside className="w-64 bg-brand-maroon text-white flex flex-col justify-between min-h-screen fixed left-0 top-0 z-20 shadow-xl">
+    <aside 
+      className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-brand-maroon text-white flex flex-col justify-between shadow-xl transition-transform duration-300 ease-in-out ${
+        isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}
+    >
       <div>
-        {/* Header Logo */}
-        <div className="p-6 border-b border-white/10">
+        {/* Header Logo & Mobile Close Button */}
+        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center font-bold text-lg border border-white/20 text-brand-gold">
               RBR
@@ -58,10 +71,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
               <span className="text-[10px] text-white/60 uppercase tracking-wider block mt-0.5">Pusat Kendali Operasional</span>
             </div>
           </div>
+
+          {/* Close button for mobile / tablet drawer */}
+          <button 
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            title="Tutup Menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Menu Navigation */}
-        <nav className="p-4 space-y-1.5">
+        <nav className="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-170px)]">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.id === 'dashboard' && pathname === '/') || activeTab === item.id;
@@ -72,6 +95,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
                 onClick={() => {
                   if (setActiveTab) {
                     setActiveTab(item.id);
+                  }
+                  if (onCloseMobile) {
+                    onCloseMobile();
                   }
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all ${
