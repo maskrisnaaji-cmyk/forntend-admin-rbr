@@ -1,6 +1,8 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Coffee, 
@@ -12,20 +14,35 @@ import {
 } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
   onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
+  const pathname = usePathname();
+  const router = useRouter();
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'kedai', label: 'Kedai Kopi & Order', icon: Coffee },
-    { id: 'agenda', label: 'Agenda & Tiket Budaya', icon: Calendar },
-    { id: 'pustaka', label: 'Pustaka & Buku', icon: BookOpen },
-    { id: 'anggota', label: 'Anggota & Kupon Promo', icon: Users },
-    { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
+    { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
+    { id: 'kedai', label: 'Kedai Kopi & Order', icon: Coffee, href: '/kedai' },
+    { id: 'agenda', label: 'Agenda & Tiket Budaya', icon: Calendar, href: '/agenda' },
+    { id: 'pustaka', label: 'Pustaka & Buku', icon: BookOpen, href: '/pustaka' },
+    { id: 'anggota', label: 'Anggota & Kupon Promo', icon: Users, href: '/anggota' },
+    { id: 'pengaturan', label: 'Pengaturan', icon: Settings, href: '/pengaturan' },
   ];
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      sessionStorage.clear();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_logged_in');
+      }
+      router.push('/login');
+    }
+  };
 
   return (
     <aside className="w-64 bg-brand-maroon text-white flex flex-col justify-between min-h-screen fixed left-0 top-0 z-20 shadow-xl">
@@ -47,11 +64,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
         <nav className="p-4 space-y-1.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = pathname === item.href || (item.id === 'dashboard' && pathname === '/') || activeTab === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                href={item.href}
+                onClick={() => {
+                  if (setActiveTab) {
+                    setActiveTab(item.id);
+                  }
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all ${
                   isActive 
                     ? 'bg-white text-brand-maroon shadow-md font-bold' 
@@ -60,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -79,9 +101,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
             </div>
           </div>
           <button 
-            onClick={onLogout}
+            onClick={handleLogout}
             title="Keluar dari akun admin"
-            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg cursor-pointer"
           >
             <LogOut size={16} />
           </button>
@@ -90,3 +112,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
     </aside>
   );
 };
+
+export default Sidebar;

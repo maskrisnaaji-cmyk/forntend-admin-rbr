@@ -399,7 +399,7 @@ export default function DashboardPage() {
                     <h3 className="text-base font-bold text-brand-text">Pesanan Aktif Kedai Kopi</h3>
                     <p className="text-xs text-brand-muted">Monitor antrean dapur & barista secara real-time</p>
                   </div>
-                  <button onClick={() => setActiveTab('kedai')} className="text-xs font-bold text-brand-maroon hover:underline">Lihat Semua Order</button>
+                  <button onClick={() => router.push('/kedai')} className="text-xs font-bold text-brand-maroon hover:underline cursor-pointer">Lihat Semua Order</button>
                 </div>
 
                 <div className="space-y-3">
