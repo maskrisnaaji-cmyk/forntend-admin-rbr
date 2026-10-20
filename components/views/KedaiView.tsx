@@ -16,6 +16,7 @@ import {
   Check,
   PackageX,
   ShoppingBag,
+  ImageUp,
 } from 'lucide-react';
 
 type OrderStatus = 'menunggu' | 'disiapkan' | 'selesai';
@@ -39,6 +40,7 @@ export interface MenuItem {
   price: number;
   description: string;
   status: MenuStatus;
+  imageUrl?: string;
 }
 
 const INITIAL_MENU_ITEMS: MenuItem[] = [
@@ -211,6 +213,7 @@ export const KedaiView = () => {
     price: number | '';
     description: string;
     status: MenuStatus;
+    imageUrl: string;
   }>({
     id: '',
     name: '',
@@ -218,7 +221,19 @@ export const KedaiView = () => {
     price: '',
     description: '',
     status: 'Tersedia',
+    imageUrl: '',
   });
+
+  // Image upload preview state
+  const [imagePreview, setImagePreview] = useState<string>('');
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setImagePreview(objectUrl);
+    setMenuFormData((prev) => ({ ...prev, imageUrl: objectUrl }));
+  };
 
   // Menu Delete Confirmation Modal
   const [menuDeleteModalOpen, setMenuDeleteModalOpen] = useState(false);
@@ -233,7 +248,9 @@ export const KedaiView = () => {
       price: '',
       description: '',
       status: 'Tersedia',
+      imageUrl: '',
     });
+    setImagePreview('');
     setMenuModalOpen(true);
   };
 
@@ -246,7 +263,9 @@ export const KedaiView = () => {
       price: item.price,
       description: item.description,
       status: item.status,
+      imageUrl: item.imageUrl || '',
     });
+    setImagePreview(item.imageUrl || '');
     setMenuModalOpen(true);
   };
 
@@ -267,6 +286,7 @@ export const KedaiView = () => {
                 price: numericPrice,
                 description: menuFormData.description,
                 status: menuFormData.status,
+                imageUrl: menuFormData.imageUrl || item.imageUrl,
               }
             : item
         )
@@ -279,6 +299,7 @@ export const KedaiView = () => {
         price: numericPrice,
         description: menuFormData.description,
         status: menuFormData.status,
+        imageUrl: menuFormData.imageUrl,
       };
       setMenuItems((prev) => [newMenu, ...prev]);
     }
@@ -556,9 +577,31 @@ export const KedaiView = () => {
             {filteredMenuItems.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col justify-between rounded-2xl border border-brand-cream-accent bg-white p-5 shadow-sm hover:shadow-md transition-all group"
+                className="flex flex-col justify-between rounded-2xl border border-brand-cream-accent bg-white overflow-hidden shadow-sm hover:shadow-md transition-all group"
               >
-                <div>
+                {/* Thumbnail Gambar Menu */}
+                <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 text-[#C59A3F]/60">
+                      <Coffee size={32} strokeWidth={1.5} />
+                      <span className="text-[10px] font-medium text-brand-muted">Belum ada foto</span>
+                    </div>
+                  )}
+                  {/* Status overlay badge */}
+                  {item.status === 'Habis' && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="rounded-full bg-rose-600 px-3 py-1 text-[10px] font-bold text-white tracking-wide">HABIS</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
                   {/* Top badges: Category & Availability */}
                   <div className="flex items-center justify-between gap-2 mb-2.5">
                     <span className="inline-flex items-center gap-1 rounded-md bg-[#FAF6F0] border border-[#E8DFD5] px-2 py-0.5 text-[10px] font-semibold text-brand-muted">
@@ -598,7 +641,7 @@ export const KedaiView = () => {
                 </div>
 
                 {/* Price and Action Buttons */}
-                <div className="mt-4 pt-3 border-t border-brand-cream-accent flex items-center justify-between">
+                <div className="mx-4 mb-4 pt-3 border-t border-brand-cream-accent flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-brand-muted block font-medium">Harga Menu</span>
                     <span className="text-sm font-extrabold text-[#5E1626]">
@@ -746,6 +789,44 @@ export const KedaiView = () => {
                   }
                   placeholder="misal: Espresso blend dengan sirup gula aren organik dan susu segar creamy..."
                   className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-[#6B1D2F] focus:outline-none"
+                />
+              </div>
+
+              {/* Upload Foto Menu */}
+              <div>
+                <label className="mb-1.5 block font-semibold text-brand-text">
+                  Upload Foto Menu
+                </label>
+                <label
+                  htmlFor="menu-image-upload"
+                  className="flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-brand-cream-accent bg-[#FAF6F0] cursor-pointer hover:border-[#C59A3F] hover:bg-[#FAF6F0]/80 transition-all overflow-hidden"
+                  style={{ minHeight: imagePreview ? 'auto' : '100px' }}
+                >
+                  {imagePreview ? (
+                    <div className="relative w-full">
+                      <img
+                        src={imagePreview}
+                        alt="Preview foto menu"
+                        className="w-full max-h-44 object-cover rounded-xl"
+                      />
+                      <span className="absolute bottom-2 right-2 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold text-white">
+                        Klik untuk ganti foto
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-5 text-brand-muted">
+                      <ImageUp size={24} strokeWidth={1.5} className="text-[#C59A3F]" />
+                      <span className="text-xs font-semibold">Klik untuk pilih foto menu</span>
+                      <span className="text-[10px]">JPG, PNG, WEBP — maks. 5MB</span>
+                    </div>
+                  )}
+                </label>
+                <input
+                  id="menu-image-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageChange}
                 />
               </div>
 
