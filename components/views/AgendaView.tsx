@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from 'react';
-import { Calendar, Ticket, Plus, Users, MapPin, Trash2, Pencil, X } from 'lucide-react';
+import { Calendar, Plus, MapPin, Trash2, Pencil, X, ImageUp, Images, Ticket } from 'lucide-react';
 
 interface EventItem {
   id: number;
@@ -13,13 +13,14 @@ interface EventItem {
   sold: number;
   total: number;
   status: string;
+  image?: string;
 }
 
 export const AgendaView = () => {
   const [events, setEvents] = useState<EventItem[]>([
-    { id: 1, title: 'Prasasti Trowulan & Diskusi Artefak', date: 'Sabtu, 28 September 2026', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif' },
-    { id: 2, title: 'Lokakarya Batik Tulis Canting Tradisional', date: 'Minggu, 29 September 2026', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh' },
-    { id: 3, title: 'Malam Pagelaran Wayang Kulit Melenial', date: 'Sabtu, 05 Oktober 2026', time: '19:30 - Selesai', location: 'Halaman Kebun RBR', price: 'Rp 50.000', sold: 18, total: 100, status: 'Aktif' },
+    { id: 1, title: 'Prasasti Trowulan & Diskusi Artefak', date: 'Sabtu, 28 September 2026', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif', image: '/rbr.jpeg' },
+    { id: 2, title: 'Lokakarya Batik Tulis Canting Tradisional', date: 'Minggu, 29 September 2026', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/rbr.jpeg' },
+    { id: 3, title: 'Malam Pagelaran Wayang Kulit Melenial', date: 'Sabtu, 05 Oktober 2026', time: '19:30 - Selesai', location: 'Halaman Kebun RBR', price: 'Rp 50.000', sold: 18, total: 100, status: 'Aktif', image: '/rbr.jpeg' },
   ]);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -36,7 +37,18 @@ export const AgendaView = () => {
     sold: 0,
     total: 50,
     status: 'Aktif',
+    image: '',
   });
+
+  const [bannerPreview, setBannerPreview] = useState<string>('');
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setBannerPreview(objectUrl);
+    setCurrentEvent((prev) => ({ ...prev, image: objectUrl }));
+  };
 
   const handleOpenCreate = () => {
     setIsEditing(false);
@@ -49,13 +61,16 @@ export const AgendaView = () => {
       sold: 0,
       total: 50,
       status: 'Aktif',
+      image: '',
     });
+    setBannerPreview('');
     setFormModalOpen(true);
   };
 
   const handleOpenEdit = (event: EventItem) => {
     setIsEditing(true);
     setCurrentEvent(event);
+    setBannerPreview(event.image || '');
     setFormModalOpen(true);
   };
 
@@ -78,6 +93,7 @@ export const AgendaView = () => {
         sold: Number(currentEvent.sold) || 0,
         total: Number(currentEvent.total) || 50,
         status: currentEvent.status || 'Aktif',
+        image: currentEvent.image || '',
       };
       setEvents((prev) => [newEvent, ...prev]);
     }
@@ -117,16 +133,37 @@ export const AgendaView = () => {
         {events.map((event) => {
           const percentage = Math.round((event.sold / event.total) * 100);
           return (
-            <div key={event.id} className="flex flex-col justify-between rounded-2xl border border-brand-cream-accent bg-white p-5 shadow-sm">
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                    event.status === 'Penuh' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+            <div key={event.id} className="flex flex-col justify-between rounded-2xl border border-brand-cream-accent bg-white overflow-hidden shadow-sm hover:shadow-md transition-all group">
+
+              {/* Banner Foto Event */}
+              <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
+                {event.image ? (
+                  <img
+                    src={event.image}
+                    alt={event.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5 text-[#C59A3F]/60">
+                    <Images size={32} strokeWidth={1.5} />
+                    <span className="text-[10px] font-medium text-brand-muted">Belum ada banner</span>
+                  </div>
+                )}
+                {/* Status badge overlay di atas banner */}
+                <span className={`absolute top-2.5 left-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow ${event.status === 'Penuh' ? 'bg-rose-600 text-white' : 'bg-emerald-500 text-white'
                   }`}>
-                    {event.status}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-brand-maroon">{event.price}</span>
+                  {event.status}
+                </span>
+              </div>
+
+              {/* Konten Kartu */}
+              <div className="p-4 flex flex-col flex-1">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="text-sm font-bold text-brand-text leading-snug group-hover:text-brand-maroon transition-colors line-clamp-2 flex-1">
+                    {event.title}
+                  </h3>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs font-extrabold text-brand-maroon whitespace-nowrap">{event.price}</span>
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(event)}
@@ -146,27 +183,28 @@ export const AgendaView = () => {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-bold text-brand-text leading-snug">{event.title}</h3>
-                
-                <div className="mt-3 space-y-1.5 text-xs text-brand-muted">
+                <div className="space-y-1.5 text-xs text-brand-muted">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-brand-maroon" />
-                    <span>{event.date}</span>
+                    <Calendar size={14} className="text-brand-maroon shrink-0" />
+                    <span>{event.date} · {event.time}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-brand-maroon" />
+                    <MapPin size={14} className="text-brand-maroon shrink-0" />
                     <span>{event.location}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-6 border-t border-brand-cream-accent pt-4">
-                <div className="mb-1 flex justify-between text-xs font-medium">
-                  <span className="text-brand-muted">Tiket Terjual</span>
-                  <span className="font-bold text-brand-text">{event.sold} / {event.total} ({percentage}%)</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-brand-cream-accent">
-                  <div className="h-full bg-brand-maroon rounded-full" style={{ width: `${percentage}%` }}></div>
+                <div className="mt-4 pt-4 border-t border-brand-cream-accent">
+                  <div className="mb-1 flex justify-between text-xs font-medium">
+                    <span className="text-brand-muted">Tiket Terjual</span>
+                    <span className="font-bold text-brand-text">{event.sold} / {event.total} ({percentage}%)</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-brand-cream-accent">
+                    <div
+                      className={`h-full rounded-full transition-all ${percentage >= 100 ? 'bg-rose-500' : 'bg-brand-maroon'}`}
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -208,11 +246,16 @@ export const AgendaView = () => {
       {/* Modal Tambah / Edit Agenda */}
       {formModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
-              <h3 className="text-sm font-bold text-brand-text">
-                {isEditing ? 'Edit Agenda Budaya' : 'Tambah Event Baru'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gold/20 text-brand-maroon">
+                  <Ticket size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-brand-text">
+                  {isEditing ? 'Edit Agenda Budaya' : 'Tambah Event Baru'}
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setFormModalOpen(false)}
@@ -223,21 +266,28 @@ export const AgendaView = () => {
             </div>
 
             <form onSubmit={handleSaveEvent} className="space-y-3.5 text-xs">
+
+              {/* Judul Acara */}
               <div>
-                <label className="mb-1 block font-semibold text-brand-text">Judul Acara</label>
+                <label className="mb-1 block font-semibold text-brand-text">
+                  Judul Acara <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={currentEvent.title || ''}
                   onChange={(e) => setCurrentEvent({ ...currentEvent, title: e.target.value })}
                   className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                  placeholder="Contoh: Diskusi Artefak Kuno"
+                  placeholder="Contoh: Diskusi Artefak Kuno Nusantara"
                 />
               </div>
 
+              {/* Tanggal & Waktu */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-semibold text-brand-text">Tanggal</label>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Tanggal <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -248,7 +298,9 @@ export const AgendaView = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-semibold text-brand-text">Waktu</label>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Waktu <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -260,8 +312,11 @@ export const AgendaView = () => {
                 </div>
               </div>
 
+              {/* Lokasi */}
               <div>
-                <label className="mb-1 block font-semibold text-brand-text">Lokasi</label>
+                <label className="mb-1 block font-semibold text-brand-text">
+                  Lokasi <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
@@ -272,9 +327,12 @@ export const AgendaView = () => {
                 />
               </div>
 
+              {/* Harga, Terjual, Kuota */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                 <div>
-                  <label className="mb-1 block font-semibold text-brand-text">Harga Tiket</label>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Harga Tiket <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -296,7 +354,9 @@ export const AgendaView = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-semibold text-brand-text">Total Kuota</label>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Total Kuota <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -308,6 +368,7 @@ export const AgendaView = () => {
                 </div>
               </div>
 
+              {/* Status Kuota */}
               <div>
                 <label className="mb-1 block font-semibold text-brand-text">Status Kuota</label>
                 <select
@@ -320,7 +381,52 @@ export const AgendaView = () => {
                 </select>
               </div>
 
-              <div className="mt-5 flex items-center justify-end gap-2.5 pt-2">
+              {/* Upload Banner Event */}
+              <div>
+                <label className="mb-1.5 block font-semibold text-brand-text">
+                  Banner / Foto Event
+                </label>
+                <label
+                  htmlFor="banner-upload"
+                  className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors overflow-hidden ${bannerPreview
+                      ? 'border-brand-gold bg-amber-50/50'
+                      : 'border-brand-cream-accent bg-[#FAF6F0] hover:border-brand-gold hover:bg-amber-50/30'
+                    }`}
+                >
+                  {bannerPreview ? (
+                    <div className="relative w-full">
+                      <img
+                        src={bannerPreview}
+                        alt="Preview banner"
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-white text-[10px] font-bold flex items-center gap-1">
+                          <ImageUp size={14} /> Ganti Foto
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-5 px-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/20 text-brand-maroon">
+                        <ImageUp size={20} />
+                      </div>
+                      <span className="text-[11px] font-semibold text-brand-text">Klik untuk upload foto banner</span>
+                      <span className="text-[10px] text-brand-muted">PNG, JPG, JPEG hingga 5MB</span>
+                    </div>
+                  )}
+                  <input
+                    id="banner-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleBannerChange}
+                  />
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-5 flex items-center justify-end gap-2.5 pt-2 border-t border-brand-cream-accent">
                 <button
                   type="button"
                   onClick={() => setFormModalOpen(false)}
