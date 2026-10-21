@@ -29,7 +29,18 @@ export default function PustakaPage() {
     category: 'Naskah Kuno',
     status: 'Tersedia',
     borrower: '-',
+    coverImage: '',
   });
+
+  const [coverPreview, setCoverPreview] = useState<string>('');
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setCoverPreview(objectUrl);
+    setCurrentBook((prev) => ({ ...prev, coverImage: objectUrl }));
+  };
 
   const handleOpenCreate = () => {
     setIsEditing(false);
@@ -40,13 +51,16 @@ export default function PustakaPage() {
       category: 'Naskah Kuno',
       status: 'Tersedia',
       borrower: '-',
+      coverImage: '',
     });
+    setCoverPreview('');
     setFormModalOpen(true);
   };
 
   const handleOpenEdit = (buku: BookItem) => {
     setIsEditing(true);
     setCurrentBook(buku);
+    setCoverPreview(buku.coverImage || '');
     setFormModalOpen(true);
   };
 
@@ -65,6 +79,7 @@ export default function PustakaPage() {
         category: currentBook.category || 'Naskah Kuno',
         status: currentBook.status || 'Tersedia',
         borrower: currentBook.borrower || '-',
+        coverImage: currentBook.coverImage || '',
       };
       setBooks((prev) => [newBook, ...prev]);
     }
@@ -132,8 +147,10 @@ export default function PustakaPage() {
           isOpen={formModalOpen}
           isEditing={isEditing}
           currentBook={currentBook}
+          coverPreview={coverPreview}
           onClose={() => setFormModalOpen(false)}
           onChange={(upd) => setCurrentBook((prev) => ({ ...prev, ...upd }))}
+          onCoverChange={handleCoverChange}
           onSubmit={handleSaveBook}
         />
 

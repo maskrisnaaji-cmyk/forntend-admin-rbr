@@ -122,8 +122,8 @@ export default function KedaiPage() {
       searchQuery.trim() === ''
         ? true
         : o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          o.table.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          o.items.toLowerCase().includes(searchQuery.toLowerCase());
+        o.table.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        o.items.toLowerCase().includes(searchQuery.toLowerCase());
     return matchFilter && matchSearch;
   });
 
@@ -211,14 +211,14 @@ export default function KedaiPage() {
         prev.map((item) =>
           item.id === menuFormData.id
             ? {
-                ...item,
-                name: menuFormData.name,
-                category: menuFormData.category,
-                price: numericPrice,
-                description: menuFormData.description,
-                status: menuFormData.status,
-                imageUrl: menuFormData.imageUrl || item.imageUrl,
-              }
+              ...item,
+              name: menuFormData.name,
+              category: menuFormData.category,
+              price: numericPrice,
+              description: menuFormData.description,
+              status: menuFormData.status,
+              imageUrl: menuFormData.imageUrl || item.imageUrl,
+            }
             : item
         )
       );
@@ -267,8 +267,8 @@ export default function KedaiPage() {
       menuSearchQuery.trim() === ''
         ? true
         : item.name.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(menuSearchQuery.toLowerCase());
+        item.description.toLowerCase().includes(menuSearchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(menuSearchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
@@ -311,20 +311,18 @@ export default function KedaiPage() {
           <button
             type="button"
             onClick={() => setActiveSubTab('antrean')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === 'antrean'
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${activeSubTab === 'antrean'
                 ? 'bg-brand-maroon text-white shadow'
                 : 'bg-white text-brand-muted border border-brand-cream-accent hover:text-brand-text'
-            }`}
+              }`}
           >
             <Clock size={15} />
             <span>Antrean Pesanan</span>
             <span
-              className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeSubTab === 'antrean'
+              className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${activeSubTab === 'antrean'
                   ? 'bg-white/20 text-white'
                   : 'bg-brand-cream-accent text-brand-text'
-              }`}
+                }`}
             >
               {orders.length}
             </span>
@@ -333,20 +331,18 @@ export default function KedaiPage() {
           <button
             type="button"
             onClick={() => setActiveSubTab('katalog')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === 'katalog'
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${activeSubTab === 'katalog'
                 ? 'bg-brand-maroon text-white shadow'
                 : 'bg-white text-brand-muted border border-brand-cream-accent hover:text-brand-text'
-            }`}
+              }`}
           >
             <Coffee size={15} />
             <span>Katalog Menu Kedai</span>
             <span
-              className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeSubTab === 'katalog'
+              className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${activeSubTab === 'katalog'
                   ? 'bg-white/20 text-white'
                   : 'bg-brand-cream-accent text-brand-text'
-              }`}
+                }`}
             >
               {menuItems.length}
             </span>

@@ -4,4 +4,5 @@ export interface BookItem {
   category: string;
   status: string;
   borrower: string;
+  coverImage?: string;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, BookOpen } from 'lucide-react';
 import { BookItem } from './types';
 
 interface BookTableProps {
@@ -16,6 +16,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete })
       <table className="w-full min-w-full text-left text-xs">
         <thead>
           <tr className="border-b border-brand-cream-accent text-brand-muted">
+            <th className="py-3 px-2">Sampul</th>
             <th className="py-3 px-2">Kode Buku</th>
             <th className="py-3 px-2">Judul Pustaka</th>
             <th className="py-3 px-2">Kategori</th>
@@ -26,7 +27,23 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete })
         </thead>
         <tbody className="divide-y divide-brand-cream-accent">
           {books.map((buku) => (
-            <tr key={buku.code} className="hover:bg-brand-cream-card/50">
+            <tr key={buku.code} className="hover:bg-brand-cream-card/50 transition-colors">
+              {/* Kolom Sampul / Gambar */}
+              <td className="py-2.5 px-2">
+                <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-brand-cream-accent shadow-sm">
+                  {buku.coverImage ? (
+                    <img
+                      src={buku.coverImage}
+                      alt={`Sampul ${buku.title}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-brand-cream-card text-brand-muted">
+                      <BookOpen size={14} />
+                    </div>
+                  )}
+                </div>
+              </td>
               <td className="py-3.5 px-2 font-bold text-brand-maroon">{buku.code}</td>
               <td className="py-3.5 px-2 font-semibold text-brand-text">{buku.title}</td>
               <td className="py-3.5 px-2 text-brand-muted">{buku.category}</td>
@@ -65,7 +82,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete })
           ))}
           {books.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-8 text-center text-brand-muted">
+              <td colSpan={7} className="py-8 text-center text-brand-muted">
                 Tidak ada judul pustaka yang ditemukan.
               </td>
             </tr>
