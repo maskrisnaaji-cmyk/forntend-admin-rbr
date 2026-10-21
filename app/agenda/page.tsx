@@ -10,9 +10,8 @@ import { DeleteEventModal } from './components/DeleteEventModal';
 
 export default function AgendaPage() {
   const [events, setEvents] = useState<EventItem[]>([
-    { id: 1, title: 'Prasasti Trowulan & Diskusi Artefak', date: 'Sabtu, 28 September 2026', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif', image: '/rbr.jpeg' },
-    { id: 2, title: 'Lokakarya Batik Tulis Canting Tradisional', date: 'Minggu, 29 September 2026', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/rbr.jpeg' },
-    { id: 3, title: 'Malam Pagelaran Wayang Kulit Melenial', date: 'Sabtu, 05 Oktober 2026', time: '19:30 - Selesai', location: 'Halaman Kebun RBR', price: 'Rp 50.000', sold: 18, total: 100, status: 'Aktif', image: '/rbr.jpeg' },
+    { id: 1, title: 'Napak Tanah', date: 'Sabtu, 28 September 2026', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif', image: '/napak_tanah.jpeg' },
+    { id: 2, title: 'Pak Rungkad', date: 'Minggu, 29 September 2026', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/pak_rungkad.jpeg' },
   ]);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);

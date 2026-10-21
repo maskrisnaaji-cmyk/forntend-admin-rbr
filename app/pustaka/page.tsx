@@ -11,10 +11,10 @@ import { DeleteBookModal } from './components/DeleteBookModal';
 
 export default function PustakaPage() {
   const [books, setBooks] = useState<BookItem[]>([
-    { code: 'NSS-001', title: 'Dokuemn Jibril', category: 'Naskah Kuno', status: 'Tersedia', borrower: '-' },
-    { code: 'NSS-008', title: 'Anjing-Anjing Menyerbu Lek Zul', category: 'Sejarah', status: 'Dipinjam', borrower: 'Dimas Anggara' },
-    { code: 'NSS-012', title: 'Lipstik di Tas Doni', category: 'Seni & Budaya', status: 'Dipinjam', borrower: 'Siti Rahma' },
-    { code: 'NSS-015', title: 'Laki-Laki yang Menikah dengan Peri', category: 'Linguistik', status: 'Tersedia', borrower: '-' },
+    { code: 'NSS-001', title: 'Dokumen Jibril', category: 'Naskah Kuno', status: 'Tersedia', borrower: '-', coverImage: '/dokumen_jibril.jpg' },
+    { code: 'NSS-008', title: 'Anjing-Anjing Menyerbu Lek Zul', category: 'Sejarah', status: 'Dipinjam', borrower: 'Dimas Anggara', coverImage: '/anjing_anjing_menyerbu_lek_zul.jpg' },
+    { code: 'NSS-012', title: 'Lipstik di Tas Doni', category: 'Seni & Budaya', status: 'Dipinjam', borrower: 'Siti Rahma', coverImage: '/lipstik_di_tas_doni.jpg' },
+    { code: 'NSS-015', title: 'Laki-Laki yang Kawin dengan Peri', category: 'Linguistik', status: 'Tersedia', borrower: '-', coverImage: '/laki_laki_yang_kawin_dengan_peri.jpg' },
   ]);
 
   const [searchQuery, setSearchQuery] = useState('');
