@@ -12,27 +12,88 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Bersihkan sisa sesi lama di localStorage agar tidak bocor ke sesi baru
+    // Bersihkan sesi lama saat masuk ke halaman login
     if (typeof window !== 'undefined') {
       localStorage.removeItem('admin_logged_in');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('admin_logged_in');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
+    setErrorMsg('');
+
+    const email = username.trim();
+    const pass = password.trim();
+
+    if (!email || !pass) {
       setErrorMsg('Silakan isi Email / Username dan Password');
       return;
     }
-    
-    // Berhasil Login
-    setErrorMsg('');
-    // Simpan tanda login ke sessionStorage (sesi tab/browser)
-    sessionStorage.setItem('admin_logged_in', 'true');
-    // Arahkan masuk ke dashboard
-    router.push('/dashboard');
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: pass,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Kredensial tidak valid atau error dari server
+        setErrorMsg(data.message || 'Email atau password salah.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Validasi role: hanya role admin yang diizinkan mengakses admin-web
+      if (data.user && data.user.role !== 'admin') {
+        setErrorMsg('Akses ditolak. Akun ini tidak memiliki hak akses Administrator.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Login berhasil, simpan token & user
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('admin_logged_in', 'true');
+
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        sessionStorage.setItem('admin_logged_in', 'true');
+
+        // Simpan rememberMe cookie/storage jika dicentang
+        if (rememberMe) {
+          localStorage.setItem('remember_admin', 'true');
+        } else {
+          localStorage.removeItem('remember_admin');
+        }
+      }
+
+      // Redirect ke dashboard
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      console.error('Login error:', err);
+      setErrorMsg('Gagal terhubung ke server backend (http://localhost:5000). Pastikan server aktif.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -143,6 +204,7 @@ export default function LoginPage() {
         rememberMe={rememberMe}
         setRememberMe={setRememberMe}
         errorMsg={errorMsg}
+        isLoading={isLoading}
         onSubmit={handleSubmit}
       />
     </div>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { User, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   username: string;
@@ -14,6 +14,7 @@ interface LoginFormProps {
   rememberMe: boolean;
   setRememberMe: (val: boolean) => void;
   errorMsg: string;
+  isLoading?: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -27,6 +28,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   rememberMe,
   setRememberMe,
   errorMsg,
+  isLoading = false,
   onSubmit,
 }) => {
   return (
@@ -55,8 +57,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
-            {errorMsg}
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600 flex items-center gap-2">
+            <span>{errorMsg}</span>
           </div>
         )}
 
@@ -70,10 +72,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <User className="absolute left-3.5 top-3 text-stone-400" size={16} />
               <input
                 type="text"
+                disabled={isLoading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@rumahbudayaratna.com atau admin"
-                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F]"
+                placeholder="admin@rbr.com"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F] disabled:opacity-50"
               />
             </div>
           </div>
@@ -92,10 +95,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <Lock className="absolute left-3.5 top-3 text-stone-400" size={16} />
               <input
                 type={showPassword ? 'text' : 'password'}
+                disabled={isLoading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-10 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F]"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-10 text-xs font-medium text-stone-800 placeholder-stone-400 focus:border-[#6B1D2F] focus:outline-none focus:ring-1 focus:ring-[#6B1D2F] disabled:opacity-50"
               />
               <button
                 type="button"
@@ -112,6 +116,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
+                disabled={isLoading}
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded border-stone-300 text-[#6B1D2F] focus:ring-[#6B1D2F]"
@@ -123,10 +128,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           {/* Button Submit */}
           <button
             type="submit"
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] py-3 text-xs font-bold text-white shadow-lg transition-all hover:bg-[#541624] hover:shadow-xl active:scale-[0.99] cursor-pointer"
+            disabled={isLoading}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] py-3 text-xs font-bold text-white shadow-lg transition-all hover:bg-[#541624] hover:shadow-xl active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
-            <span>Login ke Dashboard</span>
-            <ArrowRight size={16} />
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Memproses Otentikasi...</span>
+              </>
+            ) : (
+              <>
+                <span>Login ke Dashboard</span>
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
       </div>
