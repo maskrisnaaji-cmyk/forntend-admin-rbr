@@ -64,24 +64,83 @@ export default function PustakaPage() {
     setFormModalOpen(true);
   };
 
-  const handleSaveBook = (e: React.FormEvent) => {
+  // Fetch books from backend on mount
+  const fetchBooksFromBackend = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/books');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: BookItem[] = data.map((d: any) => ({
+            code: d.code || `NSS-${String(d.id).padStart(3, '0')}`,
+            title: d.title || '',
+            category: d.category || 'Naskah Kuno',
+            status: d.status || 'Tersedia',
+            borrower: d.borrower || '-',
+            coverImage: d.cover_image || '',
+          }));
+          setBooks(mapped);
+        }
+      }
+    } catch (e) {
+      console.warn('Backend books offline, using local state:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchBooksFromBackend();
+  }, []);
+
+  const handleSaveBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentBook.title || !currentBook.code) return;
 
-    if (isEditing) {
-      setBooks((prev) =>
-        prev.map((b) => (b.code === currentBook.code ? (currentBook as BookItem) : b))
-      );
-    } else {
-      const newBook: BookItem = {
-        code: currentBook.code || `NSS-${Date.now()}`,
-        title: currentBook.title || '',
-        category: currentBook.category || 'Naskah Kuno',
-        status: currentBook.status || 'Tersedia',
-        borrower: currentBook.borrower || '-',
-        coverImage: currentBook.coverImage || '',
-      };
-      setBooks((prev) => [newBook, ...prev]);
+    try {
+      if (isEditing) {
+        await fetch(`http://localhost:5000/api/books/${currentBook.code}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: currentBook.code,
+            title: currentBook.title,
+            category: currentBook.category,
+            status: currentBook.status,
+            borrower: currentBook.borrower,
+            cover_image: currentBook.coverImage,
+          }),
+        });
+      } else {
+        await fetch('http://localhost:5000/api/books', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: currentBook.code,
+            title: currentBook.title,
+            category: currentBook.category,
+            status: currentBook.status,
+            borrower: currentBook.borrower,
+            cover_image: currentBook.coverImage,
+          }),
+        });
+      }
+      fetchBooksFromBackend();
+    } catch (e) {
+      console.error('Gagal sync buku ke backend:', e);
+      if (isEditing) {
+        setBooks((prev) =>
+          prev.map((b) => (b.code === currentBook.code ? (currentBook as BookItem) : b))
+        );
+      } else {
+        const newBook: BookItem = {
+          code: currentBook.code || `NSS-${Date.now()}`,
+          title: currentBook.title || '',
+          category: currentBook.category || 'Naskah Kuno',
+          status: currentBook.status || 'Tersedia',
+          borrower: currentBook.borrower || '-',
+          coverImage: currentBook.coverImage || '',
+        };
+        setBooks((prev) => [newBook, ...prev]);
+      }
     }
     setFormModalOpen(false);
   };
@@ -91,9 +150,17 @@ export default function PustakaPage() {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (bookToDelete) {
-      setBooks((prev) => prev.filter((b) => b.code !== bookToDelete.code));
+      try {
+        await fetch(`http://localhost:5000/api/books/${bookToDelete.code}`, {
+          method: 'DELETE',
+        });
+        fetchBooksFromBackend();
+      } catch (e) {
+        console.warn('Gagal hapus buku di backend:', e);
+        setBooks((prev) => prev.filter((b) => b.code !== bookToDelete.code));
+      }
       setBookToDelete(null);
     }
     setDeleteModalOpen(false);

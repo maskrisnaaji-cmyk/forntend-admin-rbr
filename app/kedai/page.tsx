@@ -134,6 +134,34 @@ export default function KedaiPage() {
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('semua');
   const [menuSearchQuery, setMenuSearchQuery] = useState<string>('');
 
+  // Fetch menus from backend on mount
+  const fetchMenusFromBackend = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/menus');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: MenuItem[] = data.map((d: any) => ({
+            id: String(d.id),
+            name: d.name,
+            category: d.category as MenuCategory,
+            price: Number(d.price) || 0,
+            description: d.description || '',
+            status: (d.status || 'Tersedia') as MenuStatus,
+            imageUrl: d.image || '',
+          }));
+          setMenuItems(mapped);
+        }
+      }
+    } catch (e) {
+      console.warn('Backend menus offline, using local state:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchMenusFromBackend();
+  }, []);
+
   // Menu Modal State
   const [menuModalOpen, setMenuModalOpen] = useState(false);
   const [isEditingMenu, setIsEditingMenu] = useState(false);
@@ -200,51 +228,94 @@ export default function KedaiPage() {
     setMenuModalOpen(true);
   };
 
-  const handleSaveMenu = (e: React.FormEvent) => {
+  const handleSaveMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!menuFormData.name || menuFormData.price === '') return;
 
     const numericPrice = Number(menuFormData.price) || 0;
 
-    if (isEditingMenu && menuFormData.id) {
-      setMenuItems((prev) =>
-        prev.map((item) =>
-          item.id === menuFormData.id
-            ? {
-              ...item,
-              name: menuFormData.name,
-              category: menuFormData.category,
-              price: numericPrice,
-              description: menuFormData.description,
-              status: menuFormData.status,
-              imageUrl: menuFormData.imageUrl || item.imageUrl,
-            }
-            : item
-        )
-      );
-    } else {
-      const newMenu: MenuItem = {
-        id: `MN-${String(menuItems.length + 1).padStart(3, '0')}`,
-        name: menuFormData.name,
-        category: menuFormData.category,
-        price: numericPrice,
-        description: menuFormData.description,
-        status: menuFormData.status,
-        imageUrl: menuFormData.imageUrl,
-      };
-      setMenuItems((prev) => [newMenu, ...prev]);
+    try {
+      if (isEditingMenu && menuFormData.id) {
+        await fetch(`http://localhost:5000/api/menus/${menuFormData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: menuFormData.name,
+            category: menuFormData.category,
+            price: numericPrice,
+            description: menuFormData.description,
+            status: menuFormData.status,
+            image: menuFormData.imageUrl,
+          }),
+        });
+      } else {
+        await fetch('http://localhost:5000/api/menus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: menuFormData.name,
+            category: menuFormData.category,
+            price: numericPrice,
+            description: menuFormData.description,
+            status: menuFormData.status,
+            image: menuFormData.imageUrl,
+          }),
+        });
+      }
+      fetchMenusFromBackend();
+    } catch (e) {
+      console.error('Gagal sync ke backend menu:', e);
+      if (isEditingMenu && menuFormData.id) {
+        setMenuItems((prev) =>
+          prev.map((item) =>
+            item.id === menuFormData.id
+              ? {
+                ...item,
+                name: menuFormData.name,
+                category: menuFormData.category,
+                price: numericPrice,
+                description: menuFormData.description,
+                status: menuFormData.status,
+                imageUrl: menuFormData.imageUrl || item.imageUrl,
+              }
+              : item
+          )
+        );
+      } else {
+        const newMenu: MenuItem = {
+          id: `MN-${Date.now()}`,
+          name: menuFormData.name,
+          category: menuFormData.category,
+          price: numericPrice,
+          description: menuFormData.description,
+          status: menuFormData.status,
+          imageUrl: menuFormData.imageUrl,
+        };
+        setMenuItems((prev) => [newMenu, ...prev]);
+      }
     }
     setMenuModalOpen(false);
   };
 
-  const handleToggleMenuStatus = (itemId: string) => {
+  const handleToggleMenuStatus = async (itemId: string) => {
+    const item = menuItems.find((i) => i.id === itemId);
+    const newStatus = item?.status === 'Tersedia' ? 'Habis' : 'Tersedia';
+
     setMenuItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? { ...item, status: item.status === 'Tersedia' ? 'Habis' : 'Tersedia' }
-          : item
+      prev.map((i) =>
+        i.id === itemId ? { ...i, status: newStatus as MenuStatus } : i
       )
     );
+
+    try {
+      await fetch(`http://localhost:5000/api/menus/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch (e) {
+      console.warn('Gagal update status menu ke backend:', e);
+    }
   };
 
   const handleRequestDeleteMenu = (item: MenuItem) => {
@@ -252,9 +323,17 @@ export default function KedaiPage() {
     setMenuDeleteModalOpen(true);
   };
 
-  const handleConfirmDeleteMenu = () => {
+  const handleConfirmDeleteMenu = async () => {
     if (menuToDelete) {
-      setMenuItems((prev) => prev.filter((item) => item.id !== menuToDelete.id));
+      try {
+        await fetch(`http://localhost:5000/api/menus/${menuToDelete.id}`, {
+          method: 'DELETE',
+        });
+        fetchMenusFromBackend();
+      } catch (e) {
+        console.warn('Gagal hapus menu dari backend:', e);
+        setMenuItems((prev) => prev.filter((item) => item.id !== menuToDelete.id));
+      }
       setMenuToDelete(null);
     }
     setMenuDeleteModalOpen(false);

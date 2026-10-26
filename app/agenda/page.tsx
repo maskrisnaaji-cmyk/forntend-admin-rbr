@@ -58,6 +58,37 @@ export default function AgendaPage() {
     setFormModalOpen(true);
   };
 
+  // Fetch events from backend on mount
+  const fetchEventsFromBackend = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/events');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: EventItem[] = data.map((d: any) => ({
+            id: d.id,
+            title: d.title || d.tittle || '',
+            date: d.date || '',
+            time: d.time || '',
+            location: d.location || 'Pendopo Utama RBR',
+            price: typeof d.price === 'number' ? `Rp ${d.price.toLocaleString('id-ID')}` : (d.price || 'Rp 0'),
+            sold: Number(d.sold) || 0,
+            total: Number(d.quota) || 50,
+            status: d.status || 'Aktif',
+            image: d.image || '',
+          }));
+          setEvents(mapped);
+        }
+      }
+    } catch (e) {
+      console.warn('Backend events offline, using local state:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchEventsFromBackend();
+  }, []);
+
   const handleOpenEdit = (event: EventItem) => {
     setIsEditing(true);
     setCurrentEvent(event);
@@ -65,28 +96,70 @@ export default function AgendaPage() {
     setFormModalOpen(true);
   };
 
-  const handleSaveEvent = (e: React.FormEvent) => {
+  const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentEvent.title) return;
 
-    if (isEditing && currentEvent.id) {
-      setEvents((prev) =>
-        prev.map((ev) => (ev.id === currentEvent.id ? (currentEvent as EventItem) : ev))
-      );
-    } else {
-      const newEvent: EventItem = {
-        id: Date.now(),
-        title: currentEvent.title || 'Event Baru',
-        date: currentEvent.date || 'Sabtu, 12 Oktober 2026',
-        time: currentEvent.time || '15:00 - 18:00 WIB',
-        location: currentEvent.location || 'Pendopo Utama RBR',
-        price: currentEvent.price || 'Rp 35.000',
-        sold: Number(currentEvent.sold) || 0,
-        total: Number(currentEvent.total) || 50,
-        status: currentEvent.status || 'Aktif',
-        image: currentEvent.image || '',
-      };
-      setEvents((prev) => [newEvent, ...prev]);
+    const numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
+    const numericQuota = Number(currentEvent.total) || 50;
+    const numericSold = Number(currentEvent.sold) || 0;
+
+    try {
+      if (isEditing && currentEvent.id) {
+        await fetch(`http://localhost:5000/api/events/${currentEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentEvent.title,
+            date: currentEvent.date,
+            time: currentEvent.time,
+            location: currentEvent.location,
+            price: numericPrice,
+            quota: numericQuota,
+            sold: numericSold,
+            status: currentEvent.status,
+            image: currentEvent.image,
+          }),
+        });
+      } else {
+        await fetch('http://localhost:5000/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentEvent.title,
+            date: currentEvent.date,
+            time: currentEvent.time,
+            location: currentEvent.location,
+            price: numericPrice,
+            quota: numericQuota,
+            sold: numericSold,
+            status: currentEvent.status,
+            image: currentEvent.image,
+          }),
+        });
+      }
+      fetchEventsFromBackend();
+    } catch (e) {
+      console.error('Gagal sync event ke backend:', e);
+      if (isEditing && currentEvent.id) {
+        setEvents((prev) =>
+          prev.map((ev) => (ev.id === currentEvent.id ? (currentEvent as EventItem) : ev))
+        );
+      } else {
+        const newEvent: EventItem = {
+          id: Date.now(),
+          title: currentEvent.title || 'Event Baru',
+          date: currentEvent.date || 'Sabtu, 12 Oktober 2026',
+          time: currentEvent.time || '15:00 - 18:00 WIB',
+          location: currentEvent.location || 'Pendopo Utama RBR',
+          price: currentEvent.price || 'Rp 35.000',
+          sold: Number(currentEvent.sold) || 0,
+          total: Number(currentEvent.total) || 50,
+          status: currentEvent.status || 'Aktif',
+          image: currentEvent.image || '',
+        };
+        setEvents((prev) => [newEvent, ...prev]);
+      }
     }
     setFormModalOpen(false);
   };
@@ -96,9 +169,17 @@ export default function AgendaPage() {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (eventToDelete) {
-      setEvents((prev) => prev.filter((ev) => ev.id !== eventToDelete.id));
+      try {
+        await fetch(`http://localhost:5000/api/events/${eventToDelete.id}`, {
+          method: 'DELETE',
+        });
+        fetchEventsFromBackend();
+      } catch (e) {
+        console.warn('Gagal hapus event di backend:', e);
+        setEvents((prev) => prev.filter((ev) => ev.id !== eventToDelete.id));
+      }
       setEventToDelete(null);
     }
     setDeleteModalOpen(false);
