@@ -31,7 +31,7 @@ export const HeroBanner: React.FC = () => {
       <div className="relative z-10 flex flex-wrap items-center gap-2.5 sm:gap-3">
         <button 
           onClick={() => router.push('/agenda')}
-          className="flex items-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow transition-colors hover:bg-amber-400 cursor-pointer"
+          className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-white/20 cursor-pointer"
         >
           <Plus size={16} />
           <span>Tambah Agenda</span>
