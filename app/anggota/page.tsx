@@ -93,7 +93,7 @@ export default function AnggotaPage() {
           </div>
           <button
             onClick={handleOpenCreateCoupon}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-xs font-bold text-brand-maroon shadow hover:bg-amber-400 transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
           >
             <Plus size={16} />
             <span>Buat Kupon Promo</span>
