@@ -11,6 +11,25 @@ interface BookTableProps {
 }
 
 export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete }) => {
+  const [failedImages, setFailedImages] = React.useState<Record<string, boolean>>({});
+
+  const handleImageError = (code: string) => {
+    setFailedImages((prev) => ({ ...prev, [code]: true }));
+  };
+
+  const getImageUrl = (url?: string) => {
+    if (!url) return '';
+    // Cloud URL Vercel Blob / Full URL
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+    // Fallback path legacy
+    if (url.startsWith('assets/images/')) {
+      return `/${url.replace('assets/images/', '')}`;
+    }
+    return url;
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-full text-left text-xs">
@@ -30,15 +49,16 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete })
             <tr key={buku.code} className="hover:bg-brand-cream-card/50 transition-colors">
               {/* Kolom Sampul / Gambar */}
               <td className="py-2.5 px-2">
-                <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-brand-cream-accent shadow-sm">
-                  {buku.coverImage ? (
+                <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-brand-cream-accent shadow-sm bg-brand-cream-card flex items-center justify-center">
+                  {buku.coverImage && !failedImages[buku.code] ? (
                     <img
-                      src={buku.coverImage}
+                      src={getImageUrl(buku.coverImage)}
                       alt={`Sampul ${buku.title}`}
                       className="h-full w-full object-cover"
+                      onError={() => handleImageError(buku.code)}
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-brand-cream-card text-brand-muted">
+                    <div className="flex h-full w-full items-center justify-center text-brand-muted">
                       <BookOpen size={14} />
                     </div>
                   )}

@@ -15,6 +15,25 @@ export const EventCardList: React.FC<EventCardListProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [failedImages, setFailedImages] = React.useState<Record<number, boolean>>({});
+
+  const handleImageError = (id: number) => {
+    setFailedImages((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const getImageUrl = (url?: string) => {
+    if (!url) return '';
+    // Cloud URL Vercel Blob / Full URL
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+    // Fallback path legacy
+    if (url.startsWith('assets/images/')) {
+      return `/${url.replace('assets/images/', '')}`;
+    }
+    return url;
+  };
+
   if (events.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-brand-cream-accent p-10 text-center bg-white/60">
@@ -40,11 +59,12 @@ export const EventCardList: React.FC<EventCardListProps> = ({
           >
             {/* Banner Foto Event */}
             <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
-              {event.image ? (
+              {event.image && !failedImages[event.id] ? (
                 <img
-                  src={event.image}
+                  src={getImageUrl(event.image)}
                   alt={event.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={() => handleImageError(event.id)}
                 />
               ) : (
                 <div className="flex flex-col items-center gap-1.5 text-[#C59A3F]/60">

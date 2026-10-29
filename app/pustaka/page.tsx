@@ -33,10 +33,13 @@ export default function PustakaPage() {
   });
 
   const [coverPreview, setCoverPreview] = useState<string>('');
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedCoverFile(file);
     const objectUrl = URL.createObjectURL(file);
     setCoverPreview(objectUrl);
     setCurrentBook((prev) => ({ ...prev, coverImage: objectUrl }));
@@ -44,6 +47,7 @@ export default function PustakaPage() {
 
   const handleOpenCreate = () => {
     setIsEditing(false);
+    setSelectedCoverFile(null);
     const nextCode = `NSS-${String(books.length + 1).padStart(3, '0')}`;
     setCurrentBook({
       code: nextCode,
@@ -59,6 +63,7 @@ export default function PustakaPage() {
 
   const handleOpenEdit = (buku: BookItem) => {
     setIsEditing(true);
+    setSelectedCoverFile(null);
     setCurrentBook(buku);
     setCoverPreview(buku.coverImage || '');
     setFormModalOpen(true);
@@ -95,6 +100,38 @@ export default function PustakaPage() {
     e.preventDefault();
     if (!currentBook.title || !currentBook.code) return;
 
+    let finalCoverUrl = currentBook.coverImage || '';
+
+    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    if (selectedCoverFile) {
+      try {
+        setIsUploading(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedCoverFile);
+
+        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.url) {
+            finalCoverUrl = uploadData.url;
+            setCurrentBook((prev) => ({ ...prev, coverImage: uploadData.url }));
+          }
+        } else {
+          const errData = await uploadRes.json().catch(() => ({}));
+          console.warn('Gagal upload sampul buku ke Vercel Blob:', errData.message);
+        }
+      } catch (uploadErr) {
+        console.error('Error saat upload sampul buku:', uploadErr);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
+    // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
     try {
       if (isEditing) {
         await fetch(`http://localhost:5000/api/books/${currentBook.code}`, {
@@ -106,7 +143,7 @@ export default function PustakaPage() {
             category: currentBook.category,
             status: currentBook.status,
             borrower: currentBook.borrower,
-            cover_image: currentBook.coverImage,
+            cover_image: finalCoverUrl,
           }),
         });
       } else {
@@ -119,7 +156,7 @@ export default function PustakaPage() {
             category: currentBook.category,
             status: currentBook.status,
             borrower: currentBook.borrower,
-            cover_image: currentBook.coverImage,
+            cover_image: finalCoverUrl,
           }),
         });
       }
@@ -128,7 +165,7 @@ export default function PustakaPage() {
       console.error('Gagal sync buku ke backend:', e);
       if (isEditing) {
         setBooks((prev) =>
-          prev.map((b) => (b.code === currentBook.code ? (currentBook as BookItem) : b))
+          prev.map((b) => (b.code === currentBook.code ? ({ ...currentBook, coverImage: finalCoverUrl } as BookItem) : b))
         );
       } else {
         const newBook: BookItem = {
@@ -137,11 +174,12 @@ export default function PustakaPage() {
           category: currentBook.category || 'Naskah Kuno',
           status: currentBook.status || 'Tersedia',
           borrower: currentBook.borrower || '-',
-          coverImage: currentBook.coverImage || '',
+          coverImage: finalCoverUrl,
         };
         setBooks((prev) => [newBook, ...prev]);
       }
     }
+    setSelectedCoverFile(null);
     setFormModalOpen(false);
   };
 
@@ -215,6 +253,7 @@ export default function PustakaPage() {
           isEditing={isEditing}
           currentBook={currentBook}
           coverPreview={coverPreview}
+          isUploading={isUploading}
           onClose={() => setFormModalOpen(false)}
           onChange={(upd) => setCurrentBook((prev) => ({ ...prev, ...upd }))}
           onCoverChange={handleCoverChange}

@@ -32,10 +32,13 @@ export default function AgendaPage() {
   });
 
   const [bannerPreview, setBannerPreview] = useState<string>('');
+  const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedBannerFile(file);
     const objectUrl = URL.createObjectURL(file);
     setBannerPreview(objectUrl);
     setCurrentEvent((prev) => ({ ...prev, image: objectUrl }));
@@ -43,6 +46,7 @@ export default function AgendaPage() {
 
   const handleOpenCreate = () => {
     setIsEditing(false);
+    setSelectedBannerFile(null);
     setCurrentEvent({
       title: '',
       date: 'Sabtu, 12 Oktober 2026',
@@ -75,7 +79,7 @@ export default function AgendaPage() {
             sold: Number(d.sold) || 0,
             total: Number(d.quota) || 50,
             status: d.status || 'Aktif',
-            image: d.image || '',
+            image: d.image || d.banner_image || '',
           }));
           setEvents(mapped);
         }
@@ -91,6 +95,7 @@ export default function AgendaPage() {
 
   const handleOpenEdit = (event: EventItem) => {
     setIsEditing(true);
+    setSelectedBannerFile(null);
     setCurrentEvent(event);
     setBannerPreview(event.image || '');
     setFormModalOpen(true);
@@ -103,7 +108,42 @@ export default function AgendaPage() {
     const numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
     const numericQuota = Number(currentEvent.total) || 50;
     const numericSold = Number(currentEvent.sold) || 0;
+    let finalImageUrl = currentEvent.image || '';
 
+    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    if (selectedBannerFile) {
+      try {
+        setIsUploading(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedBannerFile);
+        if (isEditing && currentEvent.id) {
+          uploadFormData.append('entity', 'event');
+          uploadFormData.append('entityId', String(currentEvent.id));
+        }
+
+        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.url) {
+            finalImageUrl = uploadData.url;
+            setCurrentEvent((prev) => ({ ...prev, image: uploadData.url }));
+          }
+        } else {
+          const errData = await uploadRes.json().catch(() => ({}));
+          console.warn('Gagal upload banner agenda ke Vercel Blob:', errData.message);
+        }
+      } catch (uploadErr) {
+        console.error('Error saat upload banner agenda:', uploadErr);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
+    // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
     try {
       if (isEditing && currentEvent.id) {
         await fetch(`http://localhost:5000/api/events/${currentEvent.id}`, {
@@ -118,7 +158,8 @@ export default function AgendaPage() {
             quota: numericQuota,
             sold: numericSold,
             status: currentEvent.status,
-            image: currentEvent.image,
+            image: finalImageUrl,
+            banner_image: finalImageUrl,
           }),
         });
       } else {
@@ -134,7 +175,8 @@ export default function AgendaPage() {
             quota: numericQuota,
             sold: numericSold,
             status: currentEvent.status,
-            image: currentEvent.image,
+            image: finalImageUrl,
+            banner_image: finalImageUrl,
           }),
         });
       }
@@ -143,7 +185,7 @@ export default function AgendaPage() {
       console.error('Gagal sync event ke backend:', e);
       if (isEditing && currentEvent.id) {
         setEvents((prev) =>
-          prev.map((ev) => (ev.id === currentEvent.id ? (currentEvent as EventItem) : ev))
+          prev.map((ev) => (ev.id === currentEvent.id ? ({ ...currentEvent, image: finalImageUrl } as EventItem) : ev))
         );
       } else {
         const newEvent: EventItem = {
@@ -156,11 +198,12 @@ export default function AgendaPage() {
           sold: Number(currentEvent.sold) || 0,
           total: Number(currentEvent.total) || 50,
           status: currentEvent.status || 'Aktif',
-          image: currentEvent.image || '',
+          image: finalImageUrl,
         };
         setEvents((prev) => [newEvent, ...prev]);
       }
     }
+    setSelectedBannerFile(null);
     setFormModalOpen(false);
   };
 
@@ -217,6 +260,7 @@ export default function AgendaPage() {
           isEditing={isEditing}
           currentEvent={currentEvent}
           bannerPreview={bannerPreview}
+          isUploading={isUploading}
           onClose={() => setFormModalOpen(false)}
           onChange={(upd) => setCurrentEvent((prev) => ({ ...prev, ...upd }))}
           onBannerChange={handleBannerChange}

@@ -9,6 +9,7 @@ interface EventModalProps {
   isEditing: boolean;
   currentEvent: Partial<EventItem>;
   bannerPreview: string;
+  isUploading?: boolean;
   onClose: () => void;
   onChange: (updated: Partial<EventItem>) => void;
   onBannerChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -20,6 +21,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   isEditing,
   currentEvent,
   bannerPreview,
+  isUploading = false,
   onClose,
   onChange,
   onBannerChange,
@@ -177,11 +179,14 @@ export const EventModal: React.FC<EventModalProps> = ({
               }`}
             >
               {bannerPreview ? (
-                <div className="relative w-full">
+                <div className="relative w-full overflow-hidden rounded-xl bg-stone-100 flex items-center justify-center">
                   <img
-                    src={bannerPreview}
+                    src={bannerPreview.startsWith('assets/images/') ? `/${bannerPreview.replace('assets/images/', '')}` : bannerPreview}
                     alt="Preview banner"
                     className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
                     <span className="text-white text-[10px] font-bold flex items-center gap-1">
@@ -221,9 +226,17 @@ export const EventModal: React.FC<EventModalProps> = ({
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
+              disabled={isUploading}
+              className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
             >
-              {isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}
+              {isUploading ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Mengunggah Banner...</span>
+                </>
+              ) : (
+                <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
+              )}
             </button>
           </div>
         </form>

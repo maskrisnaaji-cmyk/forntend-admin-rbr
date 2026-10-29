@@ -17,6 +17,25 @@ export const MenuCardList: React.FC<MenuCardListProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [failedImages, setFailedImages] = React.useState<Record<string, boolean>>({});
+
+  const handleImageError = (id: string) => {
+    setFailedImages((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const getImageUrl = (url?: string) => {
+    if (!url) return '';
+    // Cloud URL Vercel Blob / Full URL
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+    // Fallback path legacy
+    if (url.startsWith('assets/images/')) {
+      return `/${url.replace('assets/images/', '')}`;
+    }
+    return url;
+  };
+
   const formatRupiah = (val: number) => {
     return `Rp ${val.toLocaleString('id-ID')}`;
   };
@@ -44,11 +63,12 @@ export const MenuCardList: React.FC<MenuCardListProps> = ({
         >
           {/* Thumbnail Gambar Menu */}
           <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
-            {item.imageUrl ? (
+            {item.imageUrl && !failedImages[item.id] ? (
               <img
-                src={item.imageUrl}
+                src={getImageUrl(item.imageUrl)}
                 alt={item.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={() => handleImageError(item.id)}
               />
             ) : (
               <div className="flex flex-col items-center gap-1.5 text-[#C59A3F]/60">

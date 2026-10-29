@@ -185,10 +185,13 @@ export default function KedaiPage() {
 
   // Image upload preview state
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedImageFile(file);
     const objectUrl = URL.createObjectURL(file);
     setImagePreview(objectUrl);
     setMenuFormData((prev) => ({ ...prev, imageUrl: objectUrl }));
@@ -200,6 +203,7 @@ export default function KedaiPage() {
 
   const handleOpenCreateMenu = () => {
     setIsEditingMenu(false);
+    setSelectedImageFile(null);
     setMenuFormData({
       id: '',
       name: '',
@@ -215,6 +219,7 @@ export default function KedaiPage() {
 
   const handleOpenEditMenu = (item: MenuItem) => {
     setIsEditingMenu(true);
+    setSelectedImageFile(null);
     setMenuFormData({
       id: item.id,
       name: item.name,
@@ -233,7 +238,38 @@ export default function KedaiPage() {
     if (!menuFormData.name || menuFormData.price === '') return;
 
     const numericPrice = Number(menuFormData.price) || 0;
+    let finalImageUrl = menuFormData.imageUrl;
 
+    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    if (selectedImageFile) {
+      try {
+        setIsUploading(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedImageFile);
+
+        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.url) {
+            finalImageUrl = uploadData.url;
+            setMenuFormData((prev) => ({ ...prev, imageUrl: uploadData.url }));
+          }
+        } else {
+          const errData = await uploadRes.json().catch(() => ({}));
+          console.warn('Gagal upload gambar menu ke Vercel Blob:', errData.message);
+        }
+      } catch (uploadErr) {
+        console.error('Error saat upload gambar menu:', uploadErr);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
+    // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
     try {
       if (isEditingMenu && menuFormData.id) {
         await fetch(`http://localhost:5000/api/menus/${menuFormData.id}`, {
@@ -245,7 +281,7 @@ export default function KedaiPage() {
             price: numericPrice,
             description: menuFormData.description,
             status: menuFormData.status,
-            image: menuFormData.imageUrl,
+            image: finalImageUrl,
           }),
         });
       } else {
@@ -258,7 +294,7 @@ export default function KedaiPage() {
             price: numericPrice,
             description: menuFormData.description,
             status: menuFormData.status,
-            image: menuFormData.imageUrl,
+            image: finalImageUrl,
           }),
         });
       }
@@ -276,7 +312,7 @@ export default function KedaiPage() {
                 price: numericPrice,
                 description: menuFormData.description,
                 status: menuFormData.status,
-                imageUrl: menuFormData.imageUrl || item.imageUrl,
+                imageUrl: finalImageUrl || item.imageUrl,
               }
               : item
           )
@@ -289,11 +325,12 @@ export default function KedaiPage() {
           price: numericPrice,
           description: menuFormData.description,
           status: menuFormData.status,
-          imageUrl: menuFormData.imageUrl,
+          imageUrl: finalImageUrl,
         };
         setMenuItems((prev) => [newMenu, ...prev]);
       }
     }
+    setSelectedImageFile(null);
     setMenuModalOpen(false);
   };
 
@@ -483,6 +520,7 @@ export default function KedaiPage() {
           isEditing={isEditingMenu}
           formData={menuFormData}
           imagePreview={imagePreview}
+          isUploading={isUploading}
           onClose={() => setMenuModalOpen(false)}
           onChange={(upd) => setMenuFormData((prev) => ({ ...prev, ...upd }))}
           onImageChange={handleImageChange}

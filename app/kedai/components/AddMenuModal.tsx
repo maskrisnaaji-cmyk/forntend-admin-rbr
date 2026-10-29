@@ -19,6 +19,7 @@ interface AddMenuModalProps {
   isEditing: boolean;
   formData: MenuFormData;
   imagePreview: string;
+  isUploading?: boolean;
   onClose: () => void;
   onChange: (updated: Partial<MenuFormData>) => void;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -34,6 +35,7 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
   isEditing,
   formData,
   imagePreview,
+  isUploading = false,
   onClose,
   onChange,
   onImageChange,
@@ -154,14 +156,17 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
                   style={{ minHeight: imagePreview ? 'auto' : '100px' }}
                 >
                   {imagePreview ? (
-                    <div className="relative w-full">
+                    <div className="relative w-full overflow-hidden rounded-xl bg-stone-100 flex items-center justify-center">
                       <img
-                        src={imagePreview}
+                        src={imagePreview.startsWith('assets/images/') ? `/${imagePreview.replace('assets/images/', '')}` : imagePreview}
                         alt="Preview foto menu"
                         className="w-full max-h-44 object-cover rounded-xl"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
                       />
-                      <span className="absolute bottom-2 right-2 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold text-white">
-                        Klik untuk ganti foto
+                      <span className="absolute bottom-2 right-2 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1 text-[10px] font-bold text-white flex items-center gap-1">
+                        <ImageUp size={12} /> Ganti foto
                       </span>
                     </div>
                   ) : (
@@ -228,9 +233,17 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#6B1D2F] px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-[#802135] transition-colors cursor-pointer"
+                  disabled={isUploading}
+                  className="rounded-xl bg-[#6B1D2F] px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-[#802135] transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
-                  {isEditing ? 'Simpan Perubahan' : 'Simpan Menu'}
+                  {isUploading ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <span>Mengunggah Gambar...</span>
+                    </>
+                  ) : (
+                    <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Menu'}</span>
+                  )}
                 </button>
               </div>
             </form>
