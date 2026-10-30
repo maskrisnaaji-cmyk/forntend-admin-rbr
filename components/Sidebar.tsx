@@ -63,8 +63,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header Logo & Mobile Close Button */}
         <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center font-bold text-lg border border-white/20 text-brand-gold">
-              RBR
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center font-bold text-lg border border-white/20 text-brand-gold overflow-hidden shrink-0">
+              <img 
+                src="/rbr.jpg" 
+                alt="Logo Rumah Budaya Ratna" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
             <div>
               <h1 className="font-bold text-sm leading-tight tracking-wide">Rumah Budaya Ratna</h1>

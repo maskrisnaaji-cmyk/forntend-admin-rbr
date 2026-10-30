@@ -21,17 +21,31 @@ export const EventCardList: React.FC<EventCardListProps> = ({
     setFailedImages((prev) => ({ ...prev, [id]: true }));
   };
 
-  const getImageUrl = (url?: string) => {
-    if (!url) return '';
-    // Cloud URL Vercel Blob / Full URL
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
-      return url;
+  const resolveEventImage = (event: EventItem) => {
+    const raw = event.image?.trim();
+    if (raw && !failedImages[event.id]) {
+      // Cloud URL Vercel Blob / Full URL
+      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('blob:') || raw.startsWith('data:')) {
+        return raw;
+      }
+      // Fallback path legacy
+      if (raw.startsWith('assets/images/')) {
+        return `/${raw.replace('assets/images/', '')}`;
+      }
+      return raw.startsWith('/') ? raw : `/${raw}`;
     }
-    // Fallback path legacy
-    if (url.startsWith('assets/images/')) {
-      return `/${url.replace('assets/images/', '')}`;
-    }
-    return url;
+
+    // Penyelarasan gambar banner presisi sama dengan mobile_app
+    const t = (event.title || '').toLowerCase();
+    const d = (event.date || '').toLowerCase();
+    if (t.includes('napak')) return '/napak_tanah.jpeg';
+    if (t.includes('rungkad') || t.includes('teater')) return '/pak_rungkad.jpeg';
+    if (t.includes('obrolan') || t.includes('kearifan') || d.includes('08')) return '/oktober_08_obrolan_budaya.jpg';
+    if (t.includes('batik') || t.includes('pameran') || d.includes('09')) return '/oktober_09_pameran_batik.jpg';
+    if (t.includes('keramik') || t.includes('workshop') || d.includes('11')) return '/oktober_11_workshop_keramik.jpg';
+    if (t.includes('akustik') || t.includes('puisi') || d.includes('12')) return '/oktober_12_malam_akustik.jpg';
+    if (t.includes('sabtu budaya') || t.includes('gotong royong') || d.includes('13')) return '/oktober_13_sabtu_budaya.jpg';
+    return '/rbr_frontt.jpg';
   };
 
   if (events.length === 0) {
@@ -59,9 +73,9 @@ export const EventCardList: React.FC<EventCardListProps> = ({
           >
             {/* Banner Foto Event */}
             <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
-              {event.image && !failedImages[event.id] ? (
+              {resolveEventImage(event) ? (
                 <img
-                  src={getImageUrl(event.image)}
+                  src={resolveEventImage(event)}
                   alt={event.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={() => handleImageError(event.id)}
