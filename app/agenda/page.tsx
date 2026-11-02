@@ -7,11 +7,13 @@ import { EventItem } from './components/types';
 import { EventCardList } from './components/EventCardList';
 import { EventModal } from './components/EventModal';
 import { DeleteEventModal } from './components/DeleteEventModal';
+import { formatRupiah } from '@/lib/formatCurrency';
+import { normalizeDateToISO } from '@/lib/formatDate';
 
 export default function AgendaPage() {
   const [events, setEvents] = useState<EventItem[]>([
-    { id: 1, title: 'Napak Tanah', date: 'Sabtu, 28 September 2026', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif', image: '/napak_tanah.jpeg' },
-    { id: 2, title: 'Pak Rungkad', date: 'Minggu, 29 September 2026', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/pak_rungkad.jpeg' },
+    { id: 1, title: 'Napak Tanah', date: '2026-09-28', time: '15:00 - 18:00 WIB', location: 'Pendopo Utama RBR', price: 'Rp 35.000', sold: 42, total: 50, status: 'Aktif', image: '/napak_tanah.jpeg' },
+    { id: 2, title: 'Pak Rungkad', date: '2026-09-29', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/pak_rungkad.jpeg' },
   ]);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -41,7 +43,7 @@ export default function AgendaPage() {
     setSelectedBannerFile(file);
     const objectUrl = URL.createObjectURL(file);
     setBannerPreview(objectUrl);
-    setCurrentEvent((prev) => ({ ...prev, image: objectUrl }));
+    // Jangan simpan URL sementara "blob:..." ke data event
   };
 
   const handleOpenCreate = () => {
@@ -49,10 +51,10 @@ export default function AgendaPage() {
     setSelectedBannerFile(null);
     setCurrentEvent({
       title: '',
-      date: 'Sabtu, 12 Oktober 2026',
+      date: '2026-10-12',
       time: '15:00 - 18:00 WIB',
       location: 'Pendopo Utama RBR',
-      price: 'Rp 50.000',
+      price: '50000',
       sold: 0,
       total: 50,
       status: 'Aktif',
@@ -75,7 +77,7 @@ export default function AgendaPage() {
             date: d.date || '',
             time: d.time || '',
             location: d.location || 'Pendopo Utama RBR',
-            price: typeof d.price === 'number' ? `Rp ${d.price.toLocaleString('id-ID')}` : (d.price || 'Rp 0'),
+            price: formatRupiah(d.price),
             sold: Number(d.sold) || 0,
             total: Number(d.quota) || 50,
             status: d.status || 'Aktif',
@@ -110,7 +112,12 @@ export default function AgendaPage() {
     const numericSold = Number(currentEvent.sold) || 0;
     let finalImageUrl = currentEvent.image || '';
 
-    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    // Pastikan tidak ada sisa URL blob lokal
+    if (finalImageUrl.startsWith('blob:')) {
+      finalImageUrl = '';
+    }
+
+    // 1. INTEGRASI VERCEL BLOB: Upload ke cloud permanen
     if (selectedBannerFile) {
       try {
         setIsUploading(true);
@@ -121,27 +128,48 @@ export default function AgendaPage() {
           uploadFormData.append('entityId', String(currentEvent.id));
         }
 
-        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+        // Coba upload ke endpoint lokal Next.js atau Express backend
+        let uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: uploadFormData,
-        });
+        }).catch(() => null);
 
-        if (uploadRes.ok) {
+        if (!uploadRes || !uploadRes.ok) {
+          uploadRes = await fetch('http://localhost:5000/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+        }
+
+        if (uploadRes && uploadRes.ok) {
           const uploadData = await uploadRes.json();
-          if (uploadData.url) {
+          if (uploadData.url && (uploadData.url.startsWith('https://') || uploadData.url.startsWith('http://'))) {
             finalImageUrl = uploadData.url;
             setCurrentEvent((prev) => ({ ...prev, image: uploadData.url }));
+          } else {
+            throw new Error('URL Vercel Blob tidak valid dari server.');
           }
         } else {
-          const errData = await uploadRes.json().catch(() => ({}));
-          console.warn('Gagal upload banner agenda ke Vercel Blob:', errData.message);
+          const errData = await uploadRes?.json().catch(() => ({}));
+          throw new Error(errData?.message || 'Gagal mengunggah banner ke Vercel Blob.');
         }
-      } catch (uploadErr) {
+      } catch (uploadErr: any) {
         console.error('Error saat upload banner agenda:', uploadErr);
+        alert(`Gagal mengunggah banner ke Vercel Blob: ${uploadErr.message || 'Terjadi kesalahan'}. Penyimpanan dibatalkan agar tidak menyimpan URL sementara.`);
+        setIsUploading(false);
+        return;
       } finally {
         setIsUploading(false);
       }
     }
+
+    if (finalImageUrl.startsWith('blob:')) {
+      alert('Banner belum berhasil diunggah ke cloud. Harap ulangi pemilihan file banner.');
+      return;
+    }
+
+    // 3. FORMAT TANGGAL ISO STANDAR: Kirim format YYYY-MM-DD ke backend
+    const isoDate = normalizeDateToISO(currentEvent.date) || currentEvent.date;
 
     // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
     try {
@@ -151,7 +179,7 @@ export default function AgendaPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: currentEvent.title,
-            date: currentEvent.date,
+            date: isoDate,
             time: currentEvent.time,
             location: currentEvent.location,
             price: numericPrice,
@@ -168,7 +196,7 @@ export default function AgendaPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: currentEvent.title,
-            date: currentEvent.date,
+            date: isoDate,
             time: currentEvent.time,
             location: currentEvent.location,
             price: numericPrice,
@@ -185,16 +213,16 @@ export default function AgendaPage() {
       console.error('Gagal sync event ke backend:', e);
       if (isEditing && currentEvent.id) {
         setEvents((prev) =>
-          prev.map((ev) => (ev.id === currentEvent.id ? ({ ...currentEvent, image: finalImageUrl } as EventItem) : ev))
+          prev.map((ev) => (ev.id === currentEvent.id ? ({ ...currentEvent, date: isoDate, image: finalImageUrl } as EventItem) : ev))
         );
       } else {
         const newEvent: EventItem = {
           id: Date.now(),
           title: currentEvent.title || 'Event Baru',
-          date: currentEvent.date || 'Sabtu, 12 Oktober 2026',
+          date: isoDate || '2026-10-12',
           time: currentEvent.time || '15:00 - 18:00 WIB',
           location: currentEvent.location || 'Pendopo Utama RBR',
-          price: currentEvent.price || 'Rp 35.000',
+          price: formatRupiah(numericPrice),
           sold: Number(currentEvent.sold) || 0,
           total: Number(currentEvent.total) || 50,
           status: currentEvent.status || 'Aktif',
@@ -218,11 +246,10 @@ export default function AgendaPage() {
         await fetch(`http://localhost:5000/api/events/${eventToDelete.id}`, {
           method: 'DELETE',
         });
-        fetchEventsFromBackend();
       } catch (e) {
-        console.warn('Gagal hapus event di backend:', e);
-        setEvents((prev) => prev.filter((ev) => ev.id !== eventToDelete.id));
+        console.warn('Backend delete offline, using local state:', e);
       }
+      setEvents((prev) => prev.filter((e) => e.id !== eventToDelete.id));
       setEventToDelete(null);
     }
     setDeleteModalOpen(false);
@@ -230,31 +257,40 @@ export default function AgendaPage() {
 
   return (
     <AdminLayout activeTab="agenda">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+        {/* Header Seksi Agenda */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-brand-cream-accent pb-5">
           <div>
-            <h1 className="text-xl font-bold text-brand-text">Agenda Budaya &amp; Kuota Tiket</h1>
-            <p className="text-xs text-brand-muted">
-              Atur penjadwalan acara kebudayaan dan pantau kuota penonton
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse"></span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-maroon">
+                Manajemen Program &amp; Acara
+              </span>
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-brand-text">
+              Agenda &amp; Tiket Budaya
+            </h1>
+            <p className="mt-1 text-xs text-brand-muted">
+              Kelola jadwal pementasan, lokakarya, kuota pengunjung, dan reservasi tiket.
             </p>
           </div>
           <button
             onClick={handleOpenCreate}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-light transition-all cursor-pointer"
           >
             <Plus size={16} />
             <span>Tambah Event Baru</span>
           </button>
         </div>
 
-        {/* List Card Event */}
+        {/* Daftar Kartu Event */}
         <EventCardList
           events={events}
           onEdit={handleOpenEdit}
           onDelete={handleRequestDelete}
         />
 
-        {/* Modal Tambah / Edit */}
+        {/* Modal Dialog Tambah / Edit Event */}
         <EventModal
           isOpen={formModalOpen}
           isEditing={isEditing}
@@ -267,14 +303,11 @@ export default function AgendaPage() {
           onSubmit={handleSaveEvent}
         />
 
-        {/* Modal Konfirmasi Hapus */}
+        {/* Modal Konfirmasi Hapus Event */}
         <DeleteEventModal
           isOpen={deleteModalOpen}
           eventToDelete={eventToDelete}
-          onClose={() => {
-            setDeleteModalOpen(false);
-            setEventToDelete(null);
-          }}
+          onClose={() => setDeleteModalOpen(false)}
           onConfirm={handleConfirmDelete}
         />
       </div>

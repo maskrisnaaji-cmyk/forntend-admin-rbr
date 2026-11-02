@@ -1,4 +1,6 @@
 "use client";
+import { formatRupiah } from '@/lib/formatCurrency';
+
 
 import React from 'react';
 import { Coffee, Tag, Check, PackageX, Pencil, Trash2 } from 'lucide-react';
@@ -36,9 +38,7 @@ export const MenuCardList: React.FC<MenuCardListProps> = ({
     return url;
   };
 
-  const formatRupiah = (val: number) => {
-    return `Rp ${val.toLocaleString('id-ID')}`;
-  };
+  // Menggunakan formatRupiah terstandarisasi dari @/lib/formatCurrency
 
   if (items.length === 0) {
     return (

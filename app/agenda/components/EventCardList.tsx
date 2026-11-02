@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
-import { Calendar, MapPin, Pencil, Trash2, Images } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, MapPin, Users, Ticket, Pencil, Trash2 } from 'lucide-react';
 import { EventItem } from './types';
+import { formatRupiah } from '@/lib/formatCurrency';
+import { formatISODateToIndonesian } from '@/lib/formatDate';
 
 interface EventCardListProps {
   events: EventItem[];
@@ -15,7 +17,7 @@ export const EventCardList: React.FC<EventCardListProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [failedImages, setFailedImages] = React.useState<Record<number, boolean>>({});
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
 
   const handleImageError = (id: number) => {
     setFailedImages((prev) => ({ ...prev, [id]: true }));
@@ -50,52 +52,57 @@ export const EventCardList: React.FC<EventCardListProps> = ({
 
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-brand-cream-accent p-10 text-center bg-white/60">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-cream-card text-brand-muted mb-2">
-          <Calendar size={24} />
+      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-brand-cream-accent bg-white p-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gold/20 text-brand-maroon mb-3">
+          <Ticket size={24} />
         </div>
-        <p className="text-sm font-bold text-brand-text">Belum Ada Agenda</p>
-        <p className="mt-1 text-xs text-brand-muted">
-          Klik tombol &ldquo;Tambah Event Baru&rdquo; untuk menambahkan acara budaya.
+        <h3 className="text-sm font-bold text-brand-text">Belum Ada Agenda Budaya</h3>
+        <p className="mt-1 text-xs text-brand-muted max-w-sm">
+          Klik tombol &quot;Tambah Event Baru&quot; di atas untuk menjadwalkan acara baru.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
       {events.map((event) => {
-        const percentage = Math.round((event.sold / event.total) * 100);
+        const percent = Math.min(100, Math.round((event.sold / event.total) * 100));
+        const isFull = event.status === 'Penuh' || event.sold >= event.total;
+        const bannerSrc = resolveEventImage(event);
+
         return (
           <div
             key={event.id}
-            className="flex flex-col justify-between rounded-2xl border border-brand-cream-accent bg-white overflow-hidden shadow-sm hover:shadow-md transition-all group"
+            className="group flex flex-col rounded-2xl border border-brand-cream-accent bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
           >
-            {/* Banner Foto Event */}
-            <div className="relative w-full h-36 bg-[#FAF6F0] flex items-center justify-center overflow-hidden">
-              {resolveEventImage(event) ? (
-                <img
-                  src={resolveEventImage(event)}
-                  alt={event.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={() => handleImageError(event.id)}
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-1.5 text-[#C59A3F]/60">
-                  <Images size={32} strokeWidth={1.5} />
-                  <span className="text-[10px] font-medium text-brand-muted">Belum ada banner</span>
-                </div>
-              )}
-              {/* Status badge overlay di atas banner */}
-              <span
-                className={`absolute top-2.5 left-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow ${
-                  event.status === 'Penuh'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-emerald-500 text-white'
-                }`}
-              >
-                {event.status}
-              </span>
+            {/* Foto Banner Agenda */}
+            <div className="relative h-44 w-full bg-stone-100 overflow-hidden">
+              <img
+                src={bannerSrc}
+                alt={event.title}
+                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={() => handleImageError(event.id)}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+              {/* Tag Status di atas Banner */}
+              <div className="absolute top-3 left-3">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm ${
+                    isFull
+                      ? 'bg-rose-500/90 text-white'
+                      : 'bg-emerald-600/90 text-white'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isFull ? 'bg-white' : 'bg-emerald-200 animate-pulse'
+                    }`}
+                  />
+                  {isFull ? 'Tiket Penuh' : 'Tiket Tersedia'}
+                </span>
+              </div>
             </div>
 
             {/* Konten Kartu */}
@@ -106,7 +113,7 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                 </h3>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-xs font-extrabold text-brand-maroon whitespace-nowrap">
-                    {event.price}
+                    {formatRupiah(event.price)}
                   </span>
                   <button
                     type="button"
@@ -131,28 +138,31 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                 <div className="flex items-center gap-2">
                   <Calendar size={14} className="text-brand-maroon shrink-0" />
                   <span>
-                    {event.date} · {event.time}
+                    {formatISODateToIndonesian(event.date)} · {event.time}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin size={14} className="text-brand-maroon shrink-0" />
-                  <span>{event.location}</span>
+                  <span className="line-clamp-1">{event.location}</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-brand-cream-accent">
-                <div className="mb-1 flex justify-between text-xs font-medium">
-                  <span className="text-brand-muted">Tiket Terjual</span>
+              {/* Progress Bar Kuota Tiket */}
+              <div className="mt-4 pt-3 border-t border-brand-cream-accent/60">
+                <div className="flex items-center justify-between text-[11px] font-medium text-brand-muted mb-1.5">
+                  <span className="flex items-center gap-1">
+                    <Users size={12} className="text-brand-maroon" /> Kuota Pengunjung
+                  </span>
                   <span className="font-bold text-brand-text">
-                    {event.sold} / {event.total} ({percentage}%)
+                    {event.sold} / {event.total} Tiket ({percent}%)
                   </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-brand-cream-accent">
+                <div className="h-2 w-full rounded-full bg-brand-cream-accent overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      percentage >= 100 ? 'bg-rose-500' : 'bg-brand-maroon'
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isFull ? 'bg-rose-500' : 'bg-brand-maroon'
                     }`}
-                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                    style={{ width: `${percent}%` }}
                   />
                 </div>
               </div>

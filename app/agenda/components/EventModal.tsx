@@ -3,6 +3,7 @@
 import React from 'react';
 import { Ticket, X, ImageUp } from 'lucide-react';
 import { EventItem } from './types';
+import { normalizeDateToISO } from '@/lib/formatDate';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -70,15 +71,14 @@ export const EventModal: React.FC<EventModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-semibold text-brand-text">
-                Tanggal <span className="text-rose-500">*</span>
+                Tanggal Acara (ISO YYYY-MM-DD) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="text"
+                type="date"
                 required
-                value={currentEvent.date || ''}
+                value={normalizeDateToISO(currentEvent.date)}
                 onChange={(e) => onChange({ date: e.target.value })}
-                className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="Sabtu, 28 September 2026"
+                className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
               />
             </div>
             <div>
@@ -115,7 +115,7 @@ export const EventModal: React.FC<EventModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             <div>
               <label className="mb-1 block font-semibold text-brand-text">
-                Harga Tiket <span className="text-rose-500">*</span>
+                Harga Tiket (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -123,7 +123,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 value={currentEvent.price || ''}
                 onChange={(e) => onChange({ price: e.target.value })}
                 className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="Rp 35.000"
+                placeholder="misal: 25000 atau Rp 25.000"
               />
             </div>
             <div>
@@ -232,7 +232,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               {isUploading ? (
                 <>
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Mengunggah Banner...</span>
+                  <span>Mengunggah ke Vercel Blob...</span>
                 </>
               ) : (
                 <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>

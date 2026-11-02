@@ -16,6 +16,7 @@ import { MenuCardList } from './components/MenuCardList';
 import { AddMenuModal } from './components/AddMenuModal';
 import { OrderQueue } from './components/OrderQueue';
 import { OrderModal } from './components/OrderModal';
+import { formatRupiah } from '@/lib/formatCurrency';
 
 export default function KedaiPage() {
   // 1. SUB-TAB SWITCHER STATE
@@ -194,7 +195,7 @@ export default function KedaiPage() {
     setSelectedImageFile(file);
     const objectUrl = URL.createObjectURL(file);
     setImagePreview(objectUrl);
-    setMenuFormData((prev) => ({ ...prev, imageUrl: objectUrl }));
+    // Jangan simpan URL sementara "blob:..." ke data menu
   };
 
   // Menu Delete Confirmation Modal
@@ -240,33 +241,60 @@ export default function KedaiPage() {
     const numericPrice = Number(menuFormData.price) || 0;
     let finalImageUrl = menuFormData.imageUrl;
 
-    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    // Bersihkan jika sebelumnya ada string lokal sementara "blob:..."
+    if (finalImageUrl.startsWith('blob:')) {
+      finalImageUrl = '';
+    }
+
+    // 1. INTEGRASI VERCEL BLOB: Upload ke cloud permanen
     if (selectedImageFile) {
       try {
         setIsUploading(true);
         const uploadFormData = new FormData();
         uploadFormData.append('file', selectedImageFile);
+        if (isEditingMenu && menuFormData.id) {
+          uploadFormData.append('entity', 'menu');
+          uploadFormData.append('entityId', String(menuFormData.id));
+        }
 
-        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+        // Coba upload ke Next.js API route /api/upload atau Express backend
+        let uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: uploadFormData,
-        });
+        }).catch(() => null);
 
-        if (uploadRes.ok) {
+        if (!uploadRes || !uploadRes.ok) {
+          uploadRes = await fetch('http://localhost:5000/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+        }
+
+        if (uploadRes && uploadRes.ok) {
           const uploadData = await uploadRes.json();
-          if (uploadData.url) {
+          if (uploadData.url && (uploadData.url.startsWith('https://') || uploadData.url.startsWith('http://'))) {
             finalImageUrl = uploadData.url;
             setMenuFormData((prev) => ({ ...prev, imageUrl: uploadData.url }));
+          } else {
+            throw new Error('URL Vercel Blob tidak valid dari server.');
           }
         } else {
-          const errData = await uploadRes.json().catch(() => ({}));
-          console.warn('Gagal upload gambar menu ke Vercel Blob:', errData.message);
+          const errData = await uploadRes?.json().catch(() => ({}));
+          throw new Error(errData?.message || 'Gagal mengunggah gambar menu ke Vercel Blob.');
         }
-      } catch (uploadErr) {
+      } catch (uploadErr: any) {
         console.error('Error saat upload gambar menu:', uploadErr);
+        alert(`Gagal mengunggah gambar ke Vercel Blob: ${uploadErr.message || 'Terjadi kesalahan'}. Simpan menu dibatalkan.`);
+        setIsUploading(false);
+        return;
       } finally {
         setIsUploading(false);
       }
+    }
+
+    if (finalImageUrl.startsWith('blob:')) {
+      alert('Gambar menu belum berhasil diunggah ke cloud. Harap ulangi pemilihan gambar.');
+      return;
     }
 
     // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
