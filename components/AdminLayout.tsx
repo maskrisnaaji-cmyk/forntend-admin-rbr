@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
-import { Search, Bell, LogOut, Menu } from 'lucide-react';
+import { GlobalSearchBar } from '@/components/GlobalSearchBar';
+import { Bell, LogOut, Menu } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -90,14 +91,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab })
             </div>
 
             <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-4">
-              <div className="relative flex-1 sm:flex-initial">
-                <Search className="absolute left-3 top-2.5 text-brand-muted" size={15} />
-                <input 
-                  type="text" 
-                  placeholder="Cari transaksi, pesanan..." 
-                  className="w-full sm:w-56 md:w-64 rounded-xl border border-brand-cream-accent bg-white py-2 pl-9 pr-3 text-xs text-brand-text focus:border-brand-maroon focus:outline-none"
-                />
-              </div>
+              <GlobalSearchBar />
               <button 
                 type="button"
                 className="rounded-xl border border-brand-cream-accent bg-white p-2 text-brand-muted transition-colors hover:text-brand-maroon hover:bg-brand-cream-card cursor-pointer"
