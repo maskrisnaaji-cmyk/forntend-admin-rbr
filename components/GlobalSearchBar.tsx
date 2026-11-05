@@ -241,7 +241,7 @@ export const GlobalSearchBar: React.FC = () => {
 
       {/* Autocomplete Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-32px)] sm:w-[460px] md:w-[540px] max-h-[75vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[460px] md:w-[540px] max-h-[75dvh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* Header Panel */}
           <div className="p-3.5 border-b border-brand-cream-accent/60 bg-brand-cream/40 flex items-center justify-between text-xs">
             <span className="font-semibold text-brand-text">
