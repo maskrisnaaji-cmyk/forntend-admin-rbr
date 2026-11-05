@@ -42,7 +42,7 @@ export default function PustakaPage() {
     setSelectedCoverFile(file);
     const objectUrl = URL.createObjectURL(file);
     setCoverPreview(objectUrl);
-    setCurrentBook((prev) => ({ ...prev, coverImage: objectUrl }));
+    // Jangan simpan URL sementara "blob:..." ke currentBook
   };
 
   const handleOpenCreate = () => {
@@ -102,33 +102,59 @@ export default function PustakaPage() {
 
     let finalCoverUrl = currentBook.coverImage || '';
 
-    // 1. FORM DATA & UPLOAD: Kirim file gambar menggunakan FormData ke backend Vercel Blob jika ada file baru
+    // Pastikan tidak ada sisa URL blob lokal
+    if (finalCoverUrl.startsWith('blob:')) {
+      finalCoverUrl = '';
+    }
+
+    // 1. INTEGRASI VERCEL BLOB: Upload ke cloud permanen jika ada file baru
     if (selectedCoverFile) {
       try {
         setIsUploading(true);
         const uploadFormData = new FormData();
         uploadFormData.append('file', selectedCoverFile);
+        uploadFormData.append('entity', 'book');
+        uploadFormData.append('entityId', currentBook.code || '');
 
-        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+        // Coba upload ke Next.js API route /api/upload atau Express backend
+        let uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: uploadFormData,
-        });
+        }).catch(() => null);
 
-        if (uploadRes.ok) {
+        if (!uploadRes || !uploadRes.ok) {
+          uploadRes = await fetch('http://localhost:5000/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          }).catch(() => null);
+        }
+
+        if (uploadRes && uploadRes.ok) {
           const uploadData = await uploadRes.json();
-          if (uploadData.url) {
+          if (uploadData.url && (uploadData.url.startsWith('https://') || uploadData.url.startsWith('http://'))) {
             finalCoverUrl = uploadData.url;
             setCurrentBook((prev) => ({ ...prev, coverImage: uploadData.url }));
+          } else {
+            throw new Error('URL Vercel Blob tidak valid dari server.');
           }
         } else {
-          const errData = await uploadRes.json().catch(() => ({}));
-          console.warn('Gagal upload sampul buku ke Vercel Blob:', errData.message);
+          const errData = await uploadRes?.json().catch(() => ({}));
+          throw new Error(errData?.message || 'Gagal mengunggah sampul buku ke Vercel Blob.');
         }
-      } catch (uploadErr) {
+      } catch (uploadErr: any) {
         console.error('Error saat upload sampul buku:', uploadErr);
+        alert(`Gagal mengunggah sampul buku ke Vercel Blob: ${uploadErr?.message || 'Terjadi kesalahan'}. Penyimpanan dibatalkan agar tidak menyimpan URL sementara.`);
+        setIsUploading(false);
+        return;
       } finally {
         setIsUploading(false);
       }
+    }
+
+    // Validasi ketat: Jangan izinkan URL sementara "blob:..." disimpan ke database
+    if (finalCoverUrl.startsWith('blob:')) {
+      alert('Sampul buku belum berhasil diunggah ke cloud storage. Harap ulangi pemilihan file gambar.');
+      return;
     }
 
     // 2. PENANGANAN URL CLOUD: Simpan URL cloud yang dikembalikan backend ke database
