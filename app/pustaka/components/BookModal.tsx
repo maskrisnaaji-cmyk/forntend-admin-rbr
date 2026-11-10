@@ -128,6 +128,20 @@ export const BookModal: React.FC<BookModalProps> = ({
             </div>
           </div>
 
+          {/* Link E-Faksimili */}
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Link E-Faksimili
+            </label>
+            <input
+              type="url"
+              value={currentBook.digital_url || ''}
+              onChange={(e) => onChange({ digital_url: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="Contoh: https://example.com/dokumen-faksimili.pdf"
+            />
+          </div>
+
           {/* Upload Sampul Buku */}
           <div>
             <label className="mb-1.5 block font-semibold text-brand-text">

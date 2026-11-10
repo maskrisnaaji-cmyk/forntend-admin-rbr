@@ -5,4 +5,5 @@ export interface BookItem {
   status: string;
   borrower: string;
   coverImage?: string;
+  digital_url?: string;
 }

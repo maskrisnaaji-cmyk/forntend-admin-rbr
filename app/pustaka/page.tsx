@@ -30,6 +30,7 @@ export default function PustakaPage() {
     status: 'Tersedia',
     borrower: '-',
     coverImage: '',
+    digital_url: '',
   });
 
   const [coverPreview, setCoverPreview] = useState<string>('');
@@ -56,6 +57,7 @@ export default function PustakaPage() {
       status: 'Tersedia',
       borrower: '-',
       coverImage: '',
+      digital_url: '',
     });
     setCoverPreview('');
     setFormModalOpen(true);
@@ -83,6 +85,7 @@ export default function PustakaPage() {
             status: d.status || 'Tersedia',
             borrower: d.borrower || '-',
             coverImage: d.cover_image || '',
+            digital_url: d.digital_url || d.digitalUrl || '',
           }));
           setBooks(mapped);
         }
@@ -170,6 +173,7 @@ export default function PustakaPage() {
             status: currentBook.status,
             borrower: currentBook.borrower,
             cover_image: finalCoverUrl,
+            digital_url: currentBook.digital_url || '',
           }),
         });
       } else {
@@ -183,6 +187,7 @@ export default function PustakaPage() {
             status: currentBook.status,
             borrower: currentBook.borrower,
             cover_image: finalCoverUrl,
+            digital_url: currentBook.digital_url || '',
           }),
         });
       }
@@ -201,6 +206,7 @@ export default function PustakaPage() {
           status: currentBook.status || 'Tersedia',
           borrower: currentBook.borrower || '-',
           coverImage: finalCoverUrl,
+          digital_url: currentBook.digital_url || '',
         };
         setBooks((prev) => [newBook, ...prev]);
       }
