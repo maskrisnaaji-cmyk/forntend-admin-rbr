@@ -10,6 +10,7 @@ import {
   BookOpen, 
   Users, 
   Settings, 
+  ClipboardList,
   LogOut,
   X 
 } from 'lucide-react';
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'kedai', label: 'Kedai Kopi & Order', icon: Coffee, href: '/kedai' },
     { id: 'agenda', label: 'Agenda & Tiket Budaya', icon: Calendar, href: '/agenda' },
     { id: 'pustaka', label: 'Pustaka & Buku', icon: BookOpen, href: '/pustaka' },
+    { id: 'peminjaman', label: 'Peminjaman Buku', icon: ClipboardList, href: '/peminjaman' },
     { id: 'anggota', label: 'Anggota & Kupon Promo', icon: Users, href: '/anggota' },
     { id: 'pengaturan', label: 'Pengaturan', icon: Settings, href: '/pengaturan' },
   ];
