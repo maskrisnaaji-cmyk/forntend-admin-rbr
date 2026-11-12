@@ -250,7 +250,8 @@ export default function PustakaPage() {
   return (
     <AdminLayout activeTab="pustaka">
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Seksi 1: Header & Tombol Aksi (Stagger 1) */}
+        <div className="stagger-item stagger-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-brand-text">Pustaka &amp; Katalog Naskah</h1>
             <p className="text-xs text-brand-muted">
@@ -266,7 +267,8 @@ export default function PustakaPage() {
           </button>
         </div>
 
-        <div className="rounded-2xl border border-brand-cream-accent bg-white p-4 sm:p-5 shadow-sm">
+        {/* Seksi 2: Toolbar & Tabel Pustaka (Stagger 2) */}
+        <div className="stagger-item stagger-2 rounded-2xl border border-brand-cream-accent bg-white p-4 sm:p-5 shadow-sm">
           <BookSearchToolbar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

@@ -110,8 +110,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab })
             </div>
           </header>
 
-          {/* Isi Halaman Modul View */}
-          {children}
+          {/* Isi Halaman Modul View dengan Animasi Transisi Halaman Cepat & Halus (240ms) */}
+          <div key={activeTab} className="animate-page-enter">
+            {children}
+          </div>
         </main>
       </div>
     </div>

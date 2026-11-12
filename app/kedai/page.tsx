@@ -419,8 +419,8 @@ export default function KedaiPage() {
   return (
     <AdminLayout activeTab="kedai">
       <div className="space-y-6">
-        {/* HEADER SECTION */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* HEADER SECTION (Stagger 1) */}
+        <div className="stagger-item stagger-1 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-brand-text">Manajemen Order Kedai Kopi</h1>
             <p className="text-xs text-brand-muted">
@@ -450,8 +450,8 @@ export default function KedaiPage() {
           )}
         </div>
 
-        {/* 1. SUB-TAB SWITCHER NAVIGATION */}
-        <div className="flex items-center gap-2 border-b border-brand-cream-accent pb-3">
+        {/* 1. SUB-TAB SWITCHER NAVIGATION (Stagger 2) */}
+        <div className="stagger-item stagger-2 flex items-center gap-2 border-b border-brand-cream-accent pb-3">
           <button
             type="button"
             onClick={() => setActiveSubTab('antrean')}
@@ -493,23 +493,25 @@ export default function KedaiPage() {
           </button>
         </div>
 
-        {/* TAB 1: ANTREAN PESANAN */}
+        {/* TAB 1: ANTREAN PESANAN (Stagger 3) */}
         {activeSubTab === 'antrean' && (
-          <OrderQueue
-            orders={filteredOrders}
-            filter={filter}
-            setFilter={setFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onCycleStatus={handleCycleStatus}
-            onEdit={handleOpenEdit}
-            onDelete={handleRequestDelete}
-          />
+          <div className="stagger-item stagger-3">
+            <OrderQueue
+              orders={filteredOrders}
+              filter={filter}
+              setFilter={setFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onCycleStatus={handleCycleStatus}
+              onEdit={handleOpenEdit}
+              onDelete={handleRequestDelete}
+            />
+          </div>
         )}
 
-        {/* TAB 2: KATALOG MENU KEDAI */}
+        {/* TAB 2: KATALOG MENU KEDAI (Stagger 3) */}
         {activeSubTab === 'katalog' && (
-          <div className="space-y-5 animate-in fade-in duration-200">
+          <div className="stagger-item stagger-3 space-y-5 animate-in fade-in duration-200">
             <CategoryFilter
               menuCategoryFilter={menuCategoryFilter}
               setMenuCategoryFilter={setMenuCategoryFilter}

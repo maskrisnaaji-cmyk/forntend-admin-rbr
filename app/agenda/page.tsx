@@ -257,9 +257,9 @@ export default function AgendaPage() {
 
   return (
     <AdminLayout activeTab="agenda">
-      <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
-        {/* Header Seksi Agenda */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-brand-cream-accent pb-5">
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header Seksi Agenda (Stagger 1) */}
+        <div className="stagger-item stagger-1 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-brand-cream-accent pb-5">
           <div>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse"></span>
@@ -283,12 +283,14 @@ export default function AgendaPage() {
           </button>
         </div>
 
-        {/* Daftar Kartu Event */}
-        <EventCardList
-          events={events}
-          onEdit={handleOpenEdit}
-          onDelete={handleRequestDelete}
-        />
+        {/* Daftar Kartu Event (Stagger 2) */}
+        <div className="stagger-item stagger-2">
+          <EventCardList
+            events={events}
+            onEdit={handleOpenEdit}
+            onDelete={handleRequestDelete}
+          />
+        </div>
 
         {/* Modal Dialog Tambah / Edit Event */}
         <EventModal

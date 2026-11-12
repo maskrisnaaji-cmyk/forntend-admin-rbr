@@ -4,4 +4,111 @@
 body {
   background-color: #FAF6F0;
   color: #2D2D2D;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Animasi Transisi Halaman & Micro-Interactions (200ms - 280ms) ─── */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Utility Classes untuk Animasi */
+.animate-page-enter {
+  animation: pageEnter 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Staggered Fade-In Item Cascading (Presisi 100ms per step, atas ke bawah) ─── */
+.stagger-item {
+  opacity: 0;
+  animation: slideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* stagger-0: Header/Banner — muncul langsung (0ms) */
+.stagger-0 { animation-delay: 0ms;   }
+/* stagger-1: Baris pertama konten (100ms) */
+.stagger-1 { animation-delay: 100ms; }
+/* stagger-2: Baris kedua / Stat Card 2 (200ms) */
+.stagger-2 { animation-delay: 200ms; }
+/* stagger-3: Baris ketiga / Stat Card 3 (300ms) */
+.stagger-3 { animation-delay: 300ms; }
+/* stagger-4: Baris keempat / Stat Card 4 (400ms) */
+.stagger-4 { animation-delay: 400ms; }
+/* stagger-5: Section grafik / tabel (500ms) */
+.stagger-5 { animation-delay: 500ms; }
+/* stagger-6: Panel bawah / section lanjutan (600ms) */
+.stagger-6 { animation-delay: 600ms; }
+/* stagger-7: Elemen tambahan opsional (700ms) */
+.stagger-7 { animation-delay: 700ms; }
+/* stagger-8: Elemen paling bawah opsional (800ms) */
+.stagger-8 { animation-delay: 800ms; }
+
+/* Transisi Hover Kartu Subtle */
+.card-interactive {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, border-color 200ms ease;
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
 }

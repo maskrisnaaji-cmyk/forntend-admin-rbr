@@ -11,18 +11,24 @@ import { EventOccupancy } from './components/EventOccupancy';
 export default function DashboardPage() {
   return (
     <AdminLayout activeTab="dashboard">
-      <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
-        {/* Banner Welcome Maroon */}
-        <HeroBanner />
+      <div className="space-y-6 sm:space-y-8">
+        {/* Seksi 1: Banner Welcome Maroon (Stagger 1) */}
+        <div className="stagger-item stagger-1">
+          <HeroBanner />
+        </div>
 
-        {/* 4 Stat Cards */}
-        <DashboardStats />
+        {/* Seksi 2: 4 Stat Cards Ringkasan Operasional (Stagger 2) */}
+        <div className="stagger-item stagger-2">
+          <DashboardStats />
+        </div>
 
-        {/* Seksi Grafik Analisis Keuangan */}
-        <FinancialChart />
+        {/* Seksi 3: Grafik Analisis Keuangan & Omset (Stagger 3) */}
+        <div className="stagger-item stagger-3">
+          <FinancialChart />
+        </div>
 
-        {/* 2 Panel Utama: Pesanan Aktif & Event Okupansi */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Seksi 4: 2 Panel Utama: Pesanan Aktif & Event Okupansi (Stagger 4) */}
+        <div className="stagger-item stagger-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
           <ActiveOrders />
           <EventOccupancy />
         </div>

@@ -70,7 +70,8 @@ export default function PeminjamanPage() {
   return (
     <AdminLayout activeTab="peminjaman">
       <div className="space-y-6">
-        <div>
+        {/* Header Seksi Peminjaman — muncul pertama (delay 0ms) */}
+        <div className="stagger-item stagger-0">
           <h1 className="text-xl font-bold text-brand-text">Peminjaman Buku</h1>
           <p className="text-xs text-brand-muted">
             Konfirmasi pengembalian dan request perpanjangan dari anggota.
@@ -79,15 +80,15 @@ export default function PeminjamanPage() {
 
         {error && <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</div>}
         {loading ? (
-          <div className="rounded-2xl border border-brand-cream-accent bg-white p-8 text-center text-sm text-brand-muted">
+          <div className="stagger-item stagger-1 rounded-2xl border border-brand-cream-accent bg-white p-8 text-center text-sm text-brand-muted">
             Memuat data peminjaman...
           </div>
         ) : loans.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-brand-cream-accent bg-white p-10 text-center text-sm text-brand-muted">
+          <div className="stagger-item stagger-1 rounded-2xl border border-dashed border-brand-cream-accent bg-white p-10 text-center text-sm text-brand-muted">
             Belum ada data peminjaman yang tersinkron.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-brand-cream-accent bg-white shadow-sm">
+          <div className="stagger-item stagger-1 overflow-x-auto rounded-2xl border border-brand-cream-accent bg-white shadow-sm">
             <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="border-b border-brand-cream-accent bg-brand-cream-card text-[10px] uppercase tracking-wide text-brand-muted">
                 <tr>

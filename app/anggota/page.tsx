@@ -84,7 +84,8 @@ export default function AnggotaPage() {
   return (
     <AdminLayout activeTab="anggota">
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Header & Aksi — muncul pertama (delay 0ms) */}
+        <div className="stagger-item stagger-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-brand-text">Keanggotaan &amp; Kode Promo</h1>
             <p className="text-xs text-brand-muted">
@@ -100,7 +101,8 @@ export default function AnggotaPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 2 Kolom: Member List & Coupon List (delay 100ms) */}
+        <div className="stagger-item stagger-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MemberList
             members={members}
             onDeleteMember={handleRequestDeleteMember}
