@@ -55,6 +55,8 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete })
                       src={getImageUrl(buku.coverImage)}
                       alt={`Sampul ${buku.title}`}
                       className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                       onError={() => handleImageError(buku.code)}
                     />
                   ) : (

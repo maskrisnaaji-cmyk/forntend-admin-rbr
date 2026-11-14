@@ -70,6 +70,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 src="/rbr.jpg" 
                 alt="Logo Rumah Budaya Ratna" 
                 className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}

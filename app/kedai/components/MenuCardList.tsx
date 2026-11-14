@@ -68,6 +68,8 @@ export const MenuCardList: React.FC<MenuCardListProps> = ({
                 src={getImageUrl(item.imageUrl)}
                 alt={item.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+                decoding="async"
                 onError={() => handleImageError(item.id)}
               />
             ) : (
