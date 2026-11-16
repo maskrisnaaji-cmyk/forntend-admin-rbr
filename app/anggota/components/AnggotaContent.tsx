@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { MemberItem, PromoCoupon } from './types';
 import { MemberList } from './MemberList';
 import { CouponList } from './CouponList';
 import { CouponModal } from './CouponModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+
+const COUPONS_API_URL = 'http://localhost:5000/api/coupons';
 
 export const AnggotaContent: React.FC = () => {
   const [members, setMembers] = useState<MemberItem[]>([
@@ -15,10 +17,17 @@ export const AnggotaContent: React.FC = () => {
     { id: 3, name: 'Ahmad Subagyo', email: 'ahmad.subagyo@yahoo.com', role: 'Member Reguler', visits: '3x Kunjungan', status: 'Menunggu Verifikasi' },
   ]);
 
-  const [coupons, setCoupons] = useState<PromoCoupon[]>([
-    { id: 1, code: 'BUDAYAKU20', desc: 'Diskon 20% untuk Tiket Event Budaya', status: 'Aktif', theme: 'maroon' },
-    { id: 2, code: 'KOPIKULTUR', desc: 'Potongan Rp 10.000 untuk transaksi Kedai', status: 'Aktif', theme: 'amber' },
-  ]);
+  const [coupons, setCoupons] = useState<PromoCoupon[]>([]);
+
+  useEffect(() => {
+    fetch(COUPONS_API_URL)
+      .then((response) => {
+        if (!response.ok) throw new Error('Gagal mengambil kupon');
+        return response.json();
+      })
+      .then((data: PromoCoupon[]) => setCoupons(data))
+      .catch((error) => console.error('[Coupons] load error', error));
+  }, []);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'member' | 'coupon'; id: number; name: string } | null>(null);
@@ -43,19 +52,28 @@ export const AnggotaContent: React.FC = () => {
     setCouponModalOpen(true);
   };
 
-  const handleSaveCoupon = (e: React.FormEvent) => {
+  const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCoupon.code || !newCoupon.desc) return;
 
-    const coupon: PromoCoupon = {
-      id: Date.now(),
-      code: newCoupon.code.toUpperCase(),
-      desc: newCoupon.desc,
-      status: 'Aktif',
-      theme: newCoupon.theme,
-    };
-    setCoupons((prev) => [...prev, coupon]);
-    setCouponModalOpen(false);
+    try {
+      const response = await fetch(COUPONS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newCoupon.code,
+          desc: newCoupon.desc,
+          status: 'Aktif',
+          theme: newCoupon.theme,
+        }),
+      });
+      if (!response.ok) throw new Error('Gagal menyimpan kupon');
+      const coupon = (await response.json()) as PromoCoupon;
+      setCoupons((prev) => [...prev, coupon]);
+      setCouponModalOpen(false);
+    } catch (error) {
+      console.error('[Coupons] create error', error);
+    }
   };
 
   const handleRequestDeleteMember = (member: MemberItem) => {
@@ -68,12 +86,20 @@ export const AnggotaContent: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteTarget) {
       if (deleteTarget.type === 'member') {
         setMembers((prev) => prev.filter((m) => m.id !== deleteTarget.id));
       } else {
-        setCoupons((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        try {
+          const response = await fetch(`${COUPONS_API_URL}/${deleteTarget.id}`, {
+            method: 'DELETE',
+          });
+          if (!response.ok) throw new Error('Gagal menghapus kupon');
+          setCoupons((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        } catch (error) {
+          console.error('[Coupons] delete error', error);
+        }
       }
       setDeleteTarget(null);
     }
