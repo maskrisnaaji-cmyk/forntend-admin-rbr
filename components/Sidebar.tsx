@@ -14,6 +14,7 @@ import {
   LogOut,
   X 
 } from 'lucide-react';
+import { useAdminProfile } from '@/lib/hooks/useAdminProfile';
 
 interface SidebarProps {
   activeTab?: string;
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const adminProfile = useAdminProfile();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
@@ -130,11 +132,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-brand-gold/20 text-brand-gold border border-brand-gold/40 flex items-center justify-center text-xs font-bold">
-              RD
+              {adminProfile.initials}
             </div>
             <div>
-              <p className="text-xs font-semibold text-white">Ratna Dewi</p>
-              <p className="text-[10px] text-white/60">Admin Operasional</p>
+              <p className="text-xs font-semibold text-white">{adminProfile.name}</p>
+              <p className="text-[10px] text-white/60">{adminProfile.email}</p>
             </div>
           </div>
           <button 
