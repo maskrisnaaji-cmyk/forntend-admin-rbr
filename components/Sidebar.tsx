@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -24,6 +24,20 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
+type NotificationRow = {
+  type?: string;
+};
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+const notificationTypesByMenu: Record<string, string[]> = {
+  kedai: ['order', 'kedai'],
+  agenda: ['event', 'agenda', 'ticket'],
+  pustaka: ['book', 'library', 'pustaka'],
+  peminjaman: ['loan', 'borrow', 'peminjaman'],
+  anggota: ['member', 'coupon', 'anggota', 'kupon'],
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({ 
   activeTab, 
   setActiveTab, 
@@ -34,6 +48,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const router = useRouter();
   const adminProfile = useAdminProfile();
+  const [notificationCounts, setNotificationCounts] = useState<Record<string, number>>({});
+
+  const fetchNotificationCounts = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/notifications?unread_only=true`, {
+        cache: 'no-store',
+        signal,
+      });
+      if (!response.ok) return;
+
+      const payload = await response.json();
+      const unreadNotifications: NotificationRow[] = Array.isArray(payload.data)
+        ? payload.data
+        : [];
+      const nextCounts: Record<string, number> = {};
+
+      Object.entries(notificationTypesByMenu).forEach(([menuId, types]) => {
+        nextCounts[menuId] = unreadNotifications.filter((notification) =>
+          types.includes(String(notification.type || '').toLowerCase())
+        ).length;
+      });
+
+      setNotificationCounts(nextCounts);
+    } catch (error) {
+      // Badge bersifat informatif; kegagalan backend tidak boleh mengganggu navigasi.
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        console.warn('[Sidebar notifications] Gagal memuat notifikasi:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchNotificationCounts(controller.signal);
+    const interval = window.setInterval(() => fetchNotificationCounts(), 15000);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+    };
+  }, [fetchNotificationCounts]);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
@@ -101,6 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.id === 'dashboard' && pathname === '/') || activeTab === item.id;
+            const notificationCount = notificationCounts[item.id] || 0;
             return (
               <Link
                 key={item.id}
@@ -119,8 +175,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : 'text-white/80 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <Icon size={18} />
-                <span>{item.label}</span>
+                <Icon size={18} className="shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {notificationCount > 0 && (
+                  <span
+                    aria-label={`${notificationCount} notifikasi belum dibaca`}
+                    title={`${notificationCount} notifikasi belum dibaca`}
+                    className={`inline-flex min-w-5 h-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none ${
+                      isActive ? 'bg-brand-maroon text-white' : 'bg-brand-gold text-brand-maroon'
+                    }`}
+                  >
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
               </Link>
             );
           })}

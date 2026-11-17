@@ -9,8 +9,8 @@ interface SystemSettingsTabProps {
 
 export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({ onNotify }) => {
   const [placeName, setPlaceName] = useState('Rumah Budaya Ratna');
-  const [tagline, setTagline] = useState('Ruang Temu Seni, Literasi & Kehangatan Tradisi Jawa');
-  const [address, setAddress] = useState('Jl. Magelang No. 102, Sleman, DI Yogyakarta');
+  const [tagline, setTagline] = useState('Library Cafe | Bookshop | Fortune Telling');
+  const [address, setAddress] = useState('Jl. Diponegoro No. 03, Malang');
   const [contactPhone, setContactPhone] = useState('+62 813-9876-5432');
   const [contactEmail, setContactEmail] = useState('kontak@rumahbudayaratna.id');
 
