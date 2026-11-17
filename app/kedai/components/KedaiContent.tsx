@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Clock, Coffee } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Clock, Coffee, RefreshCw } from 'lucide-react';
 import {
   OrderItem,
   OrderStatus,
@@ -16,19 +16,76 @@ import { AddMenuModal } from './AddMenuModal';
 import { OrderQueue } from './OrderQueue';
 import { OrderModal } from './OrderModal';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const ORDER_POLL_INTERVAL_MS = 5000;
+
+/** Mapping row dari backend → OrderItem UI */
+function mapOrderRow(d: any): OrderItem {
+  const statusRaw: string = (d.order_status || d.status || 'menunggu').toLowerCase();
+  let status: OrderStatus = 'menunggu';
+  if (statusRaw === 'disiapkan' || statusRaw === 'sedang diproses') status = 'disiapkan';
+  else if (statusRaw === 'selesai') status = 'selesai';
+
+  const totalStr = d.total ||
+    (d.total_price ? `Rp ${Number(d.total_price).toLocaleString('id-ID')}` : 'Rp 0');
+
+  return {
+    id: d.order_code || d.id || '',
+    order_code: d.order_code || d.id,
+    table: d.table_number || d.table || '-',
+    table_number: d.table_number || d.table,
+    items: d.items_summary || (Array.isArray(d.items)
+      ? d.items.map((i: any) => `${i.qty || 1}x ${i.name}`).join(', ')
+      : String(d.items || '')),
+    items_summary: d.items_summary,
+    total: totalStr,
+    total_price: d.total_price ? Number(d.total_price) : undefined,
+    payment_status: d.payment_status as 'UNPAID' | 'PAID',
+    order_status: d.order_status,
+    status,
+    time: d.time || 'Baru saja',
+  };
+}
+
 export const KedaiContent: React.FC = () => {
   // 1. SUB-TAB SWITCHER STATE
   const [activeSubTab, setActiveSubTab] = useState<'antrean' | 'katalog'>('antrean');
 
   // ----------------------------------------------------
-  // ORDER STATE & HANDLERS
+  // ORDER STATE & HANDLERS (connected to backend)
   // ----------------------------------------------------
-  const [orders, setOrders] = useState<OrderItem[]>([
-    { id: 'RBR-1042', table: 'Meja 04', items: '1x Kopi Susu Creamy Gula Aren, 1x Americano Origin, 1x Pisang Goreng', total: 'Rp 65.000', status: 'disiapkan', time: '10 menit lalu' },
-    { id: 'RBR-1043', table: 'Meja 09', items: '2x Wedang Uwuh Rempah Khas, 1x Jadah Bakar Serundeng Gurih', total: 'Rp 45.000', status: 'menunggu', time: '5 menit lalu' },
-    { id: 'RBR-1041', table: 'Meja 01', items: '1x Single Origin V60 Flores Bajawa, 1x Cirebon Rujak', total: 'Rp 52.000', status: 'selesai', time: '25 menit lalu' },
-    { id: 'RBR-1040', table: 'Meja 03', items: '2x Espresso Double Shot, 2x Croissant Butter', total: 'Rp 78.000', status: 'selesai', time: '40 menit lalu' },
-  ]);
+  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchOrders = useCallback(async (silent = false) => {
+    if (!silent) setOrdersLoading(true);
+    setOrdersError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/kedai/orders`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const rows: any[] = Array.isArray(json) ? json : (json.data ?? []);
+      setOrders(rows.map(mapOrderRow));
+      setLastRefreshed(new Date());
+    } catch (err: any) {
+      setOrdersError('Gagal memuat antrean pesanan. Pastikan server backend berjalan.');
+      console.warn('[OrderQueue] fetch error:', err);
+    } finally {
+      if (!silent) setOrdersLoading(false);
+    }
+  }, []);
+
+  // Initial load & polling setiap 5 detik
+  useEffect(() => {
+    fetchOrders();
+    pollingRef.current = setInterval(() => fetchOrders(true), ORDER_POLL_INTERVAL_MS);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [fetchOrders]);
 
   const [filter, setFilter] = useState('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,41 +120,75 @@ export const KedaiContent: React.FC = () => {
     setFormModalOpen(true);
   };
 
-  const handleCycleStatus = (orderId: string) => {
+  /** Update status pesanan ke backend via PATCH /api/kedai/orders/:id/status */
+  const handleCycleStatus = async (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+
+    const nextStatusMap: Record<OrderStatus, OrderStatus> = {
+      menunggu: 'disiapkan',
+      disiapkan: 'selesai',
+      selesai: 'menunggu',
+    };
+    const nextStatus = nextStatusMap[order.status];
+
+    // Optimistic update
     setOrders((prev) =>
-      prev.map((order) => {
-        if (order.id === orderId) {
-          const nextStatusMap: Record<OrderStatus, OrderStatus> = {
-            menunggu: 'disiapkan',
-            disiapkan: 'selesai',
-            selesai: 'menunggu',
-          };
-          return { ...order, status: nextStatusMap[order.status] };
-        }
-        return order;
-      })
+      prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
     );
+
+    try {
+      await fetch(`${BACKEND_URL}/api/kedai/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_status: nextStatus }),
+      });
+      // Re-fetch setelah update agar data sinkron
+      fetchOrders(true);
+    } catch (e) {
+      console.warn('Gagal update status pesanan ke backend:', e);
+      // Rollback jika gagal
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: order.status } : o))
+      );
+    }
   };
 
-  const handleSaveOrder = (e: React.FormEvent) => {
+  const handleSaveOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentOrder.table || !currentOrder.items) return;
 
     if (isEditing && currentOrder.id) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === currentOrder.id ? (currentOrder as OrderItem) : o))
-      );
+      // Update status pesanan yang ada
+      try {
+        await fetch(`${BACKEND_URL}/api/kedai/orders/${currentOrder.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_status: currentOrder.status }),
+        });
+        fetchOrders(true);
+      } catch (e) {
+        console.warn('Gagal simpan edit pesanan:', e);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === currentOrder.id ? (currentOrder as OrderItem) : o))
+        );
+      }
     } else {
-      const randomId = `RBR-${Math.floor(1000 + Math.random() * 9000)}`;
-      const newOrder: OrderItem = {
-        id: currentOrder.id || randomId,
-        table: currentOrder.table || 'Meja 01',
-        items: currentOrder.items || '',
-        total: currentOrder.total || 'Rp 0',
-        status: (currentOrder.status as OrderStatus) || 'menunggu',
-        time: 'Baru saja',
-      };
-      setOrders((prev) => [newOrder, ...prev]);
+      // Buat pesanan baru via POST
+      try {
+        await fetch(`${BACKEND_URL}/api/kedai/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table_number: currentOrder.table,
+            items: currentOrder.items,
+            total_price: Number(String(currentOrder.total || '0').replace(/[^0-9]/g, '')) || 0,
+          }),
+        });
+        fetchOrders(true);
+      } catch (e) {
+        console.warn('Gagal buat pesanan baru:', e);
+      }
     }
     setFormModalOpen(false);
   };
@@ -107,9 +198,17 @@ export const KedaiContent: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (orderToDelete) {
-      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      try {
+        await fetch(`${BACKEND_URL}/api/kedai/orders/${orderToDelete.id}`, {
+          method: 'DELETE',
+        });
+        fetchOrders(true);
+      } catch (e) {
+        console.warn('Gagal hapus pesanan:', e);
+        setOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      }
       setOrderToDelete(null);
     }
     setDeleteModalOpen(false);
@@ -133,32 +232,52 @@ export const KedaiContent: React.FC = () => {
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('semua');
   const [menuSearchQuery, setMenuSearchQuery] = useState<string>('');
 
-  const fetchMenusFromBackend = async () => {
+  const fetchMenusFromBackend = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/menus');
+      const res = await fetch(`${BACKEND_URL}/api/kedai/menus`, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped: MenuItem[] = data.map((d: any) => ({
-            id: String(d.id),
-            name: d.name,
-            category: d.category as MenuCategory,
-            price: Number(d.price) || 0,
-            description: d.description || '',
-            status: (d.status || 'Tersedia') as MenuStatus,
-            imageUrl: d.image || '',
-          }));
+        const rows = Array.isArray(data) ? data : (data.data ?? []);
+        if (rows.length > 0) {
+          const mapped: MenuItem[] = rows.map((d: any) => {
+            const isAvail = d.is_available !== undefined && d.is_available !== null
+              ? (d.is_available === true || d.is_available === 1 || d.is_available === '1' || d.is_available === 'true')
+              : (String(d.status).trim().toLowerCase() !== 'habis');
+            const status: MenuStatus = isAvail ? 'Tersedia' : 'Habis';
+            return {
+              id: String(d.id),
+              name: d.name,
+              category: d.category as MenuCategory,
+              price: Number(d.price) || 0,
+              description: d.description || '',
+              status,
+              imageUrl: d.image || d.imageUrl || '',
+            };
+          });
           setMenuItems(mapped);
         }
       }
     } catch (e) {
       console.warn('Backend menus offline, using local state:', e);
     }
-  };
-
-  React.useEffect(() => {
-    fetchMenusFromBackend();
   }, []);
+
+  useEffect(() => {
+    fetchMenusFromBackend();
+  }, [fetchMenusFromBackend]);
+
+  // Refresh menu saat sub-tab katalog dibuka
+  useEffect(() => {
+    if (activeSubTab === 'katalog') {
+      fetchMenusFromBackend();
+    }
+  }, [activeSubTab, fetchMenusFromBackend]);
 
   const [menuModalOpen, setMenuModalOpen] = useState(false);
   const [isEditingMenu, setIsEditingMenu] = useState(false);
@@ -254,7 +373,7 @@ export const KedaiContent: React.FC = () => {
         }).catch(() => null);
 
         if (!uploadRes || !uploadRes.ok) {
-          uploadRes = await fetch('http://localhost:5000/api/upload', {
+          uploadRes = await fetch(`${BACKEND_URL}/api/upload`, {
             method: 'POST',
             body: uploadFormData,
           });
@@ -289,7 +408,7 @@ export const KedaiContent: React.FC = () => {
 
     try {
       if (isEditingMenu && menuFormData.id) {
-        await fetch(`http://localhost:5000/api/menus/${menuFormData.id}`, {
+        await fetch(`${BACKEND_URL}/api/kedai/menus/${menuFormData.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -298,11 +417,12 @@ export const KedaiContent: React.FC = () => {
             price: numericPrice,
             description: menuFormData.description,
             status: menuFormData.status,
+            is_available: menuFormData.status === 'Tersedia',
             image: finalImageUrl,
           }),
         });
       } else {
-        await fetch('http://localhost:5000/api/menus', {
+        await fetch(`${BACKEND_URL}/api/kedai/menus`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -311,6 +431,7 @@ export const KedaiContent: React.FC = () => {
             price: numericPrice,
             description: menuFormData.description,
             status: menuFormData.status,
+            is_available: menuFormData.status === 'Tersedia',
             image: finalImageUrl,
           }),
         });
@@ -351,24 +472,48 @@ export const KedaiContent: React.FC = () => {
     setMenuModalOpen(false);
   };
 
+  /**
+   * Toggle status ketersediaan menu — memanggil PATCH /api/kedai/menus/:id
+   * dengan payload { is_available: boolean, status: string } agar tersimpan ke backend.
+   */
   const handleToggleMenuStatus = async (itemId: string) => {
     const item = menuItems.find((i) => i.id === itemId);
-    const newStatus = item?.status === 'Tersedia' ? 'Habis' : 'Tersedia';
+    if (!item) return;
+    const newStatus: MenuStatus = item.status === 'Tersedia' ? 'Habis' : 'Tersedia';
+    const newAvailable = newStatus === 'Tersedia';
 
+    // Optimistic update pada kartu admin
     setMenuItems((prev) =>
-      prev.map((i) =>
-        i.id === itemId ? { ...i, status: newStatus as MenuStatus } : i
-      )
+      prev.map((i) => (i.id === itemId ? { ...i, status: newStatus } : i))
     );
 
     try {
-      await fetch(`http://localhost:5000/api/menus/${itemId}`, {
-        method: 'PUT',
+      const res = await fetch(`${BACKEND_URL}/api/kedai/menus/${itemId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ is_available: newAvailable, status: newStatus }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const resJson = await res.json().catch(() => null);
+      if (resJson) {
+        const row = resJson.data || resJson;
+        if (row && (row.is_available !== undefined || row.status !== undefined)) {
+          const isAvail = row.is_available !== undefined && row.is_available !== null
+            ? (row.is_available === true || row.is_available === 1 || row.is_available === '1' || row.is_available === 'true')
+            : (String(row.status).trim().toLowerCase() !== 'habis');
+          const confirmedStatus: MenuStatus = isAvail ? 'Tersedia' : 'Habis';
+          setMenuItems((prev) =>
+            prev.map((i) => (i.id === itemId ? { ...i, status: confirmedStatus } : i))
+          );
+        }
+      }
     } catch (e) {
-      console.warn('Gagal update status menu ke backend:', e);
+      console.warn('Gagal update status menu ke backend, rollback:', e);
+      // Rollback jika gagal
+      setMenuItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, status: item.status } : i))
+      );
     }
   };
 
@@ -380,7 +525,7 @@ export const KedaiContent: React.FC = () => {
   const handleConfirmDeleteMenu = async () => {
     if (menuToDelete) {
       try {
-        await fetch(`http://localhost:5000/api/menus/${menuToDelete.id}`, {
+        await fetch(`${BACKEND_URL}/api/kedai/menus/${menuToDelete.id}`, {
           method: 'DELETE',
         });
         fetchMenusFromBackend();
@@ -419,21 +564,49 @@ export const KedaiContent: React.FC = () => {
         </div>
 
         {activeSubTab === 'antrean' ? (
-          <button
-            onClick={handleOpenCreate}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
-          >
-            <Plus size={16} />
-            <span>Buat Pesanan Baru</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Tombol refresh manual + indikator last-sync */}
+            {lastRefreshed && (
+              <span className="text-[10px] text-brand-muted hidden sm:block">
+                Diperbarui {lastRefreshed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => fetchOrders()}
+              title="Refresh manual antrean"
+              className="flex items-center gap-1.5 rounded-xl border border-brand-cream-accent bg-white px-3 py-2 text-xs font-semibold text-brand-muted hover:text-brand-text hover:bg-brand-cream-card transition-colors cursor-pointer"
+            >
+              <RefreshCw size={14} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              onClick={handleOpenCreate}
+              className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Buat Pesanan Baru</span>
+            </button>
+          </div>
         ) : (
-          <button
-            onClick={handleOpenCreateMenu}
-            className="flex items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] border border-[#D4AF37] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#802135] transition-all cursor-pointer"
-          >
-            <Plus size={16} className="text-[#D4AF37]" />
-            <span>+ Tambah Menu Baru</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fetchMenusFromBackend()}
+              title="Refresh katalog menu"
+              className="flex items-center gap-1.5 rounded-xl border border-brand-cream-accent bg-white px-3 py-2 text-xs font-semibold text-brand-muted hover:text-brand-text hover:bg-brand-cream-card transition-colors cursor-pointer"
+            >
+              <RefreshCw size={14} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              onClick={handleOpenCreateMenu}
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] border border-[#D4AF37] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#802135] transition-all cursor-pointer"
+            >
+              <Plus size={16} className="text-[#D4AF37]" />
+              <span>+ Tambah Menu Baru</span>
+            </button>
+          </div>
         )}
       </header>
 
@@ -487,16 +660,31 @@ export const KedaiContent: React.FC = () => {
       {/* TAB 1: ANTREAN PESANAN (delay 200ms) */}
       {activeSubTab === 'antrean' && (
         <section aria-label="Antrean Pesanan Dapur" className="stagger-item stagger-2">
-          <OrderQueue
-            orders={filteredOrders}
-            filter={filter}
-            setFilter={setFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onCycleStatus={handleCycleStatus}
-            onEdit={handleOpenEdit}
-            onDelete={handleRequestDelete}
-          />
+          {/* Error banner */}
+          {ordersError && (
+            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700 font-medium">
+              ⚠️ {ordersError}
+            </div>
+          )}
+          {/* Loading skeleton */}
+          {ordersLoading && orders.length === 0 ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 rounded-2xl bg-brand-cream-card animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <OrderQueue
+              orders={filteredOrders}
+              filter={filter}
+              setFilter={setFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onCycleStatus={handleCycleStatus}
+              onEdit={handleOpenEdit}
+              onDelete={handleRequestDelete}
+            />
+          )}
         </section>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Search, Clock, AlertCircle, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { Search, Clock, AlertCircle, CheckCircle2, Pencil, Trash2, Coffee } from 'lucide-react';
 import { OrderItem } from './types';
 
 interface OrderQueueProps {
@@ -69,18 +69,20 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
             key={order.id}
             className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-brand-cream-accent bg-white p-5 shadow-sm"
           >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-brand-maroon px-2 py-0.5 text-xs font-bold text-white">
-                  {order.table}
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="rounded bg-brand-maroon px-2 py-0.5 text-xs font-bold text-white shrink-0">
+                  {order.table_number || order.table}
                 </span>
                 <span className="text-xs font-semibold text-brand-text">#{order.id}</span>
                 <span className="text-[10px] text-brand-muted">• {order.time}</span>
               </div>
-              <p className="text-xs text-brand-muted">{order.items}</p>
+              {/* Items ringkasan */}
+              <p className="text-xs text-brand-muted line-clamp-2">{order.items}</p>
               <p className="text-sm font-extrabold text-brand-maroon">{order.total}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {/* Badge order_status dari backend */}
               {order.status === 'disiapkan' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">
                   <Clock size={12} /> Disiapkan
@@ -88,12 +90,18 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
               )}
               {order.status === 'menunggu' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-[11px] font-bold text-blue-700">
-                  <AlertCircle size={12} /> Menunggu Bayar
+                  <AlertCircle size={12} /> Menunggu
                 </span>
               )}
               {order.status === 'selesai' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700">
                   <CheckCircle2 size={12} /> Selesai
+                </span>
+              )}
+              {/* payment_status badge jika relevan */}
+              {order.payment_status === 'PAID' && order.status !== 'selesai' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                  ✓ Lunas
                 </span>
               )}
               <button
@@ -124,8 +132,14 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
           </div>
         ))}
         {orders.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-brand-cream-accent p-8 text-center bg-white/60">
-            <p className="text-xs text-brand-muted">Tidak ada pesanan yang sesuai dengan filter.</p>
+          <div className="rounded-2xl border border-dashed border-brand-cream-accent p-10 text-center bg-white/60">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-cream-card text-brand-muted mb-3">
+              <Coffee size={24} />
+            </div>
+            <p className="text-sm font-bold text-brand-text">Antrean Kosong</p>
+            <p className="mt-1 text-xs text-brand-muted">
+              Belum ada pesanan yang masuk. Pesanan dari mobile app yang sudah dibayar akan muncul di sini secara otomatis.
+            </p>
           </div>
         )}
       </div>

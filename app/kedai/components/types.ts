@@ -2,9 +2,17 @@ export type OrderStatus = 'menunggu' | 'disiapkan' | 'selesai';
 
 export interface OrderItem {
   id: string;
+  order_code?: string;
   table: string;
+  table_number?: string;
+  /** Ringkasan string "2x Kopi Susu, 1x Wedang" – dari items_summary backend */
   items: string;
+  items_summary?: string;
   total: string;
+  total_price?: number;
+  payment_status?: 'UNPAID' | 'PAID';
+  /** order_status dari backend: 'Menunggu' | 'Disiapkan' | 'Selesai' */
+  order_status?: string;
   status: OrderStatus;
   time: string;
 }
