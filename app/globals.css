@@ -62,6 +62,17 @@ body {
   }
 }
 
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 /* Utility Classes untuk Animasi */
 .animate-page-enter {
   animation: pageEnter 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -77,6 +88,10 @@ body {
 
 .animate-scale-in {
   animation: scaleIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-pop {
+  animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ─── Staggered Fade-In Item Cascading (Presisi 100ms per step, atas ke bawah) ─── */

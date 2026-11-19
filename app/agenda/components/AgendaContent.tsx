@@ -59,6 +59,7 @@ export const AgendaContent: React.FC = () => {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [currentEvent, setCurrentEvent] = useState<Partial<EventItem>>({
     title: '',
     date: '',
@@ -126,9 +127,11 @@ export const AgendaContent: React.FC = () => {
   // ─── Buka modal Create ──────────────────────────────────────────────────────
   const handleOpenCreate = () => {
     setIsEditing(false);
+    setSaveError(null);
     setSelectedBannerFile(null);
     setCurrentEvent({
       title: '',
+      category: 'Budaya',
       date: new Date().toISOString().split('T')[0],
       time: '15:00 - 18:00 WIB',
       location: 'Pendopo Utama RBR',
@@ -147,9 +150,11 @@ export const AgendaContent: React.FC = () => {
   // ─── Buka modal Edit ────────────────────────────────────────────────────────
   const handleOpenEdit = (event: EventItem) => {
     setIsEditing(true);
+    setSaveError(null);
     setSelectedBannerFile(null);
     setCurrentEvent({
       ...event,
+      category: event.category || 'Budaya',
       price: String(event.priceRaw || 0),
     });
     setBannerPreview(event.image || '');
@@ -161,6 +166,7 @@ export const AgendaContent: React.FC = () => {
     e.preventDefault();
     if (!currentEvent.title) return;
     setIsSaving(true);
+    setSaveError(null);
 
     const numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
     const numericQuota = Number(currentEvent.quota) || 50;
@@ -227,48 +233,50 @@ export const AgendaContent: React.FC = () => {
       category: currentEvent.category || 'Budaya',
     };
 
+    // Baca token dari localStorage jika tersedia
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('token') || localStorage.getItem('authToken') || '')
+      : '';
+
+    const authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) authHeaders['Authorization'] = `Bearer ${token}`;
+
     try {
       let res: Response;
       if (isEditing && currentEvent.id) {
         res = await fetch(`${BACKEND_URL}/api/events/${currentEvent.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify(payload),
         });
       } else {
         res = await fetch(`${BACKEND_URL}/api/events`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify(payload),
         });
       }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
+        const errMsg = errData?.message || `HTTP ${res.status}: Gagal menyimpan event.`;
         console.error('[AgendaContent] Gagal simpan event:', errData);
+        setSaveError(errMsg);
+        return; // Jangan tutup modal — biarkan user melihat error
       }
 
       // Refresh daftar dari backend setelah simpan
       await fetchEvents(false);
+      setFormModalOpen(false);
+      setSelectedBannerFile(null);
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       console.error('[AgendaContent] Gagal sync event ke backend:', err);
-      // Fallback: update state lokal jika backend offline
-      if (isEditing && currentEvent.id) {
-        setEvents((prev) =>
-          prev.map((ev) =>
-            ev.id === currentEvent.id
-              ? mapBackendEvent({ ...payload, id: currentEvent.id })
-              : ev
-          )
-        );
-      } else {
-        const newEv = mapBackendEvent({ ...payload, id: Date.now() });
-        setEvents((prev) => [newEv, ...prev]);
-      }
+      setSaveError(`Gagal terhubung ke server: ${errMsg}`);
     } finally {
       setIsSaving(false);
-      setSelectedBannerFile(null);
-      setFormModalOpen(false);
     }
   };
 
@@ -291,6 +299,7 @@ export const AgendaContent: React.FC = () => {
     setEvents((prev) => prev.filter((e) => e.id !== eventToDelete.id));
     setEventToDelete(null);
     setDeleteModalOpen(false);
+    await fetchEvents(false);
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -319,6 +328,7 @@ export const AgendaContent: React.FC = () => {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleOpenCreate}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-maroon-light transition-all cursor-pointer"
         >
@@ -355,26 +365,34 @@ export const AgendaContent: React.FC = () => {
       )}
 
       {/* Modal Tambah / Edit */}
-      <EventModal
-        isOpen={formModalOpen}
-        isEditing={isEditing}
-        isSaving={isSaving}
-        currentEvent={currentEvent}
-        bannerPreview={bannerPreview}
-        isUploading={isUploading}
-        onClose={() => setFormModalOpen(false)}
-        onChange={(upd) => setCurrentEvent((prev) => ({ ...prev, ...upd }))}
-        onBannerChange={handleBannerChange}
-        onSubmit={handleSaveEvent}
-      />
+      {formModalOpen && (
+        <EventModal
+          isOpen={formModalOpen}
+          isEditing={isEditing}
+          isSaving={isSaving}
+          currentEvent={currentEvent}
+          bannerPreview={bannerPreview}
+          isUploading={isUploading}
+          saveError={saveError}
+          onClose={() => { setFormModalOpen(false); setSaveError(null); }}
+          onChange={(upd) => { setCurrentEvent((prev) => ({ ...prev, ...upd })); setSaveError(null); }}
+          onBannerChange={handleBannerChange}
+          onSubmit={handleSaveEvent}
+        />
+      )}
 
       {/* Modal Konfirmasi Hapus */}
-      <DeleteEventModal
-        isOpen={deleteModalOpen}
-        eventToDelete={eventToDelete}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-      />
+      {deleteModalOpen && Boolean(eventToDelete) && (
+        <DeleteEventModal
+          isOpen={deleteModalOpen}
+          eventToDelete={eventToDelete}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setEventToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </div>
   );
 };

@@ -12,6 +12,7 @@ interface EventModalProps {
   currentEvent: Partial<EventItem>;
   bannerPreview: string;
   isUploading?: boolean;
+  saveError?: string | null;
   onClose: () => void;
   onChange: (updated: Partial<EventItem>) => void;
   onBannerChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -25,6 +26,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   currentEvent,
   bannerPreview,
   isUploading = false,
+  saveError,
   onClose,
   onChange,
   onBannerChange,
@@ -32,9 +34,18 @@ export const EventModal: React.FC<EventModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const displayImage = bannerPreview || currentEvent.image || '';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${
+        isOpen ? '' : 'pointer-events-none hidden'
+      }`}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
         <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gold/20 text-brand-maroon">
@@ -169,32 +180,56 @@ export const EventModal: React.FC<EventModalProps> = ({
             </p>
           </div>
 
-          {/* Upload Banner Event */}
+          {/* Kategori */}
           <div>
-            <label className="mb-1.5 block font-semibold text-brand-text">
-              Banner / Foto Event
+            <label className="mb-1 block font-semibold text-brand-text">Kategori</label>
+            <select
+              value={currentEvent.category || 'Budaya'}
+              onChange={(e) => onChange({ category: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+            >
+              <option value="Budaya">Budaya</option>
+              <option value="Teater">Teater</option>
+              <option value="Pameran">Pameran</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Musik">Musik</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+
+          {/* Upload Banner Event */}
+          <div className="space-y-2">
+            <label className="block font-semibold text-brand-text">
+              URL / Upload Banner Event
             </label>
+            <input
+              type="text"
+              value={currentEvent.image || ''}
+              onChange={(e) => onChange({ image: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="URL gambar (contoh: /oktober_08_obrolan_budaya.jpg atau https://...)"
+            />
             <label
               htmlFor="banner-upload"
               className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors overflow-hidden ${
-                bannerPreview
+                displayImage
                   ? 'border-brand-gold bg-amber-50/50'
                   : 'border-brand-cream-accent bg-[#FAF6F0] hover:border-brand-gold hover:bg-amber-50/30'
               }`}
             >
-              {bannerPreview ? (
+              {displayImage ? (
                 <div className="relative w-full overflow-hidden rounded-xl bg-stone-100 flex items-center justify-center">
                   <img
-                    src={bannerPreview.startsWith('assets/images/') ? `/${bannerPreview.replace('assets/images/', '')}` : bannerPreview}
+                    src={displayImage.startsWith('assets/images/') ? `/${displayImage.replace('assets/images/', '')}` : displayImage}
                     alt="Preview banner"
                     className="w-full h-32 object-cover"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
                     <span className="text-white text-[10px] font-bold flex items-center gap-1">
-                      <ImageUp size={14} /> Ganti Foto
+                      <ImageUp size={14} /> Ganti Foto / Upload File
                     </span>
                   </div>
                 </div>
@@ -204,7 +239,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                     <ImageUp size={20} />
                   </div>
                   <span className="text-[11px] font-semibold text-brand-text">
-                    Klik untuk upload foto banner
+                    Klik untuk upload foto banner dari perangkat
                   </span>
                   <span className="text-[10px] text-brand-muted">PNG, JPG, JPEG hingga 5MB</span>
                 </div>
@@ -220,33 +255,41 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-5 flex items-center justify-end gap-2.5 pt-2 border-t border-brand-cream-accent">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-brand-cream-accent bg-brand-cream-card px-4 py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isUploading || isSaving}
-              className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
-            >
-              {isUploading ? (
-                <>
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Mengunggah ke Vercel Blob...</span>
-                </>
-              ) : isSaving ? (
-                <>
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
-              )}
-            </button>
+          <div className="mt-5 pt-2 border-t border-brand-cream-accent space-y-2.5">
+            {/* Error banner */}
+            {saveError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                ⚠ {saveError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-brand-cream-accent bg-brand-cream-card px-4 py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isUploading || isSaving}
+                className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+              >
+                {isUploading ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Mengunggah ke Vercel Blob...</span>
+                  </>
+                ) : isSaving ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

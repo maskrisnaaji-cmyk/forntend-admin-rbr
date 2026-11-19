@@ -138,24 +138,28 @@ export const AnggotaContent: React.FC = () => {
       </section>
 
       {/* Modal Buat Kupon */}
-      <CouponModal
-        isOpen={couponModalOpen}
-        formData={newCoupon}
-        onClose={() => setCouponModalOpen(false)}
-        onChange={(upd) => setNewCoupon((prev) => ({ ...prev, ...upd }))}
-        onSubmit={handleSaveCoupon}
-      />
+      {couponModalOpen && (
+        <CouponModal
+          isOpen={couponModalOpen}
+          formData={newCoupon}
+          onClose={() => setCouponModalOpen(false)}
+          onChange={(upd) => setNewCoupon((prev) => ({ ...prev, ...upd }))}
+          onSubmit={handleSaveCoupon}
+        />
+      )}
 
       {/* Modal Konfirmasi Hapus */}
-      <DeleteConfirmationModal
-        isOpen={deleteModalOpen}
-        target={deleteTarget}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setDeleteTarget(null);
-        }}
-        onConfirm={handleConfirmDelete}
-      />
+      {deleteModalOpen && Boolean(deleteTarget) && (
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          target={deleteTarget}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setDeleteTarget(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </div>
   );
 };

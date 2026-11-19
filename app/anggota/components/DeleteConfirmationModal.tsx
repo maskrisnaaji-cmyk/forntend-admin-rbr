@@ -19,8 +19,8 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   if (!isOpen || !target) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen && target ? '' : 'pointer-events-none hidden'}`}>
+      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
           <Trash2 size={22} />
         </div>

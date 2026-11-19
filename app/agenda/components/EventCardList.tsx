@@ -92,7 +92,7 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                 decoding="async"
                 onError={() => handleImageError(event.id)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
               {/* Badge Status */}
               <div className="absolute top-3 left-3">

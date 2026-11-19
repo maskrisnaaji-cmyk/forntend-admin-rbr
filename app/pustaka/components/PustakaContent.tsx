@@ -275,28 +275,32 @@ export const PustakaContent: React.FC = () => {
       </section>
 
       {/* Modal Tambah / Edit */}
-      <BookModal
-        isOpen={formModalOpen}
-        isEditing={isEditing}
-        currentBook={currentBook}
-        coverPreview={coverPreview}
-        isUploading={isUploading}
-        onClose={() => setFormModalOpen(false)}
-        onChange={(upd) => setCurrentBook((prev) => ({ ...prev, ...upd }))}
-        onCoverChange={handleCoverChange}
-        onSubmit={handleSaveBook}
-      />
+      {formModalOpen && (
+        <BookModal
+          isOpen={formModalOpen}
+          isEditing={isEditing}
+          currentBook={currentBook}
+          coverPreview={coverPreview}
+          isUploading={isUploading}
+          onClose={() => setFormModalOpen(false)}
+          onChange={(upd) => setCurrentBook((prev) => ({ ...prev, ...upd }))}
+          onCoverChange={handleCoverChange}
+          onSubmit={handleSaveBook}
+        />
+      )}
 
       {/* Modal Konfirmasi Hapus */}
-      <DeleteBookModal
-        isOpen={deleteModalOpen}
-        bookToDelete={bookToDelete}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setBookToDelete(null);
-        }}
-        onConfirm={handleConfirmDelete}
-      />
+      {deleteModalOpen && Boolean(bookToDelete) && (
+        <DeleteBookModal
+          isOpen={deleteModalOpen}
+          bookToDelete={bookToDelete}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setBookToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </div>
   );
 };

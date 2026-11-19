@@ -33,8 +33,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     <>
       {/* MODAL TAMBAH / EDIT PESANAN */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen ? '' : 'pointer-events-none hidden'}`}>
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <h3 className="text-sm font-bold text-brand-text">
                 {isEditing ? `Edit Pesanan #${currentOrder.id}` : 'Buat Pesanan Baru'}
@@ -121,8 +121,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
       {/* MODAL KONFIRMASI HAPUS PESANAN */}
       {deleteModalOpen && orderToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${deleteModalOpen && orderToDelete ? '' : 'pointer-events-none hidden'}`}>
+          <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
               <Trash2 size={22} />
             </div>
