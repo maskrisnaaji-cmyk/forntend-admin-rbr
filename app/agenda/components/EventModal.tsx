@@ -8,6 +8,7 @@ import { normalizeDateToISO } from '@/lib/formatDate';
 interface EventModalProps {
   isOpen: boolean;
   isEditing: boolean;
+  isSaving?: boolean;
   currentEvent: Partial<EventItem>;
   bannerPreview: string;
   isUploading?: boolean;
@@ -20,6 +21,7 @@ interface EventModalProps {
 export const EventModal: React.FC<EventModalProps> = ({
   isOpen,
   isEditing,
+  isSaving = false,
   currentEvent,
   bannerPreview,
   isUploading = false,
@@ -111,7 +113,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             />
           </div>
 
-          {/* Harga, Terjual, Kuota */}
+          {/* Harga, Tiket Terjual, Kuota */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             <div>
               <label className="mb-1 block font-semibold text-brand-text">
@@ -127,13 +129,12 @@ export const EventModal: React.FC<EventModalProps> = ({
               />
             </div>
             <div>
-              <label className="mb-1 block font-semibold text-brand-text">Terjual</label>
+              <label className="mb-1 block font-semibold text-brand-text">Tiket Terjual</label>
               <input
                 type="number"
                 min="0"
-                required
-                value={currentEvent.sold ?? 0}
-                onChange={(e) => onChange({ sold: Number(e.target.value) })}
+                value={currentEvent.booked_count ?? currentEvent.sold ?? 0}
+                onChange={(e) => onChange({ booked_count: Number(e.target.value), sold: Number(e.target.value) })}
                 className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
               />
             </div>
@@ -145,8 +146,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                 type="number"
                 min="1"
                 required
-                value={currentEvent.total ?? 50}
-                onChange={(e) => onChange({ total: Number(e.target.value) })}
+                value={currentEvent.quota ?? 50}
+                onChange={(e) => onChange({ quota: Number(e.target.value) })}
                 className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
               />
             </div>
@@ -154,15 +155,18 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           {/* Status Kuota */}
           <div>
-            <label className="mb-1 block font-semibold text-brand-text">Status Kuota</label>
+            <label className="mb-1 block font-semibold text-brand-text">Status Tiket</label>
             <select
-              value={currentEvent.status || 'Aktif'}
-              onChange={(e) => onChange({ status: e.target.value })}
+              value={currentEvent.status || 'Tiket Tersedia'}
+              onChange={(e) => onChange({ status: e.target.value as 'Tiket Tersedia' | 'Tiket Penuh' })}
               className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
             >
-              <option value="Aktif">Aktif</option>
-              <option value="Penuh">Penuh</option>
+              <option value="Tiket Tersedia">Tiket Tersedia</option>
+              <option value="Tiket Penuh">Tiket Penuh (Tutup Penjualan)</option>
             </select>
+            <p className="mt-1 text-[10px] text-brand-muted">
+              Status &quot;Tiket Penuh&quot; otomatis jika tiket terjual ≥ kuota.
+            </p>
           </div>
 
           {/* Upload Banner Event */}
@@ -226,13 +230,18 @@ export const EventModal: React.FC<EventModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || isSaving}
               className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
             >
               {isUploading ? (
                 <>
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   <span>Mengunggah ke Vercel Blob...</span>
+                </>
+              ) : isSaving ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Menyimpan...</span>
                 </>
               ) : (
                 <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
