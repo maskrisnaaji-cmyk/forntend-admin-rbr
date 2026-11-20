@@ -1,11 +1,12 @@
 "use client";
 
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   target: { type: 'member' | 'coupon'; id: number; name: string } | null;
+  isDeleting?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -13,38 +14,42 @@ interface DeleteConfirmationModalProps {
 export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   isOpen,
   target,
+  isDeleting = false,
   onClose,
   onConfirm,
 }) => {
   if (!isOpen || !target) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen && target ? '' : 'pointer-events-none hidden'}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
           <Trash2 size={22} />
         </div>
         <h3 className="text-center text-sm font-bold text-brand-text">
-          Konfirmasi Hapus {target.type === 'member' ? 'Anggota' : 'Kupon'}
+          Konfirmasi Hapus {target.type === 'member' ? 'Anggota' : 'Kupon Promo'}
         </h3>
         <p className="mt-2 text-center text-xs text-brand-muted leading-relaxed">
-          Apakah Anda yakin ingin menghapus {target.type === 'member' ? 'anggota' : 'kupon promo'}{' '}
+          Apakah Anda yakin ingin menghapus {target.type === 'member' ? 'akun anggota' : 'kupon promo'}{' '}
           <span className="font-semibold text-brand-text">&ldquo;{target.name}&rdquo;</span>? Tindakan ini tidak dapat dibatalkan.
         </p>
         <div className="mt-6 flex items-center gap-2.5">
           <button
             type="button"
+            disabled={isDeleting}
             onClick={onClose}
-            className="flex-1 rounded-xl border border-brand-cream-accent bg-brand-cream-card py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
+            className="flex-1 rounded-xl border border-brand-cream-accent bg-brand-cream-card py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer disabled:opacity-60"
           >
             Batal
           </button>
           <button
             type="button"
+            disabled={isDeleting}
             onClick={onConfirm}
-            className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-60"
           >
-            Ya, Hapus
+            {isDeleting && <Loader2 size={13} className="animate-spin" />}
+            <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
           </button>
         </div>
       </div>
