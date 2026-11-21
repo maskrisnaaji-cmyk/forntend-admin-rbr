@@ -162,6 +162,8 @@ export const EventModal: React.FC<EventModalProps> = ({
             >
               <option value="Aktif">Aktif</option>
               <option value="Penuh">Penuh</option>
+              <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+              <option value="Ditolak">Ditolak</option>
             </select>
           </div>
 

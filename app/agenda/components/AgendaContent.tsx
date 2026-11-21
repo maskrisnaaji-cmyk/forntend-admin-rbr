@@ -15,6 +15,7 @@ export const AgendaContent: React.FC = () => {
     { id: 2, title: 'Pak Rungkad', date: '2026-09-29', time: '09:00 - 12:00 WIB', location: 'Galeri Kriya RBR', price: 'Rp 75.000', sold: 30, total: 30, status: 'Penuh', image: '/pak_rungkad.jpeg' },
   ]);
 
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'pending'>('all');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
 
@@ -64,7 +65,7 @@ export const AgendaContent: React.FC = () => {
 
   const fetchEventsFromBackend = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/events');
+      const res = await fetch('http://localhost:5000/api/events?include_pending=true');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -79,12 +80,55 @@ export const AgendaContent: React.FC = () => {
             total: Number(d.quota) || 50,
             status: d.status || 'Aktif',
             image: d.image || d.banner_image || '',
+            category: d.category || 'Lokakarya',
+            organizer_name: d.organizer_name || '',
+            organizer_contact: d.organizer_contact || '',
+            organizer_email: d.organizer_email || '',
+            description: d.description || '',
           }));
           setEvents(mapped);
         }
       }
     } catch (e) {
       console.warn('Backend events offline, using local state:', e);
+    }
+  };
+
+  const handleApproveEvent = async (event: EventItem) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/events/${event.id}/approve`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        fetchEventsFromBackend();
+      } else {
+        setEvents((prev) =>
+          prev.map((e) => (e.id === event.id ? { ...e, status: 'Aktif' } : e))
+        );
+      }
+    } catch {
+      setEvents((prev) =>
+        prev.map((e) => (e.id === event.id ? { ...e, status: 'Aktif' } : e))
+      );
+    }
+  };
+
+  const handleRejectEvent = async (event: EventItem) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/events/${event.id}/reject`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        fetchEventsFromBackend();
+      } else {
+        setEvents((prev) =>
+          prev.map((e) => (e.id === event.id ? { ...e, status: 'Ditolak' } : e))
+        );
+      }
+    } catch {
+      setEvents((prev) =>
+        prev.map((e) => (e.id === event.id ? { ...e, status: 'Ditolak' } : e))
+      );
     }
   };
 
@@ -247,6 +291,24 @@ export const AgendaContent: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
+  const displayedEvents = events.filter((e) => {
+    if (activeTab === 'pending') {
+      return e.status === 'Menunggu Persetujuan' || e.status === 'Pending';
+    }
+    if (activeTab === 'active') {
+      return (
+        e.status !== 'Menunggu Persetujuan' &&
+        e.status !== 'Pending' &&
+        e.status !== 'Ditolak'
+      );
+    }
+    return true;
+  });
+
+  const pendingCount = events.filter(
+    (e) => e.status === 'Menunggu Persetujuan' || e.status === 'Pending'
+  ).length;
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Header Seksi Agenda — muncul pertama (delay 0ms) */}
@@ -274,12 +336,65 @@ export const AgendaContent: React.FC = () => {
         </button>
       </header>
 
+      {/* Tabs Filter Status */}
+      <div className="flex items-center gap-2 border-b border-brand-cream-accent pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('all')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'all'
+              ? 'bg-brand-maroon text-white shadow-sm'
+              : 'bg-brand-cream-card text-brand-muted hover:text-brand-text'
+          }`}
+        >
+          Semua Acara ({events.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('active')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'active'
+              ? 'bg-brand-maroon text-white shadow-sm'
+              : 'bg-brand-cream-card text-brand-muted hover:text-brand-text'
+          }`}
+        >
+          Aktif &amp; Terjadwal (
+          {
+            events.filter(
+              (e) =>
+                e.status !== 'Menunggu Persetujuan' &&
+                e.status !== 'Pending' &&
+                e.status !== 'Ditolak'
+            ).length
+          }
+          )
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('pending')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'pending'
+              ? 'bg-amber-600 text-white shadow-sm'
+              : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          <span>Pengajuan Lokakarya</span>
+          {pendingCount > 0 && (
+            <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-extrabold">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Daftar Kartu Event (delay 100ms) */}
       <section aria-label="Daftar Jadwal Acara dan Tiket" className="stagger-item stagger-1">
         <EventCardList
-          events={events}
+          events={displayedEvents}
           onEdit={handleOpenEdit}
           onDelete={handleRequestDelete}
+          onApprove={handleApproveEvent}
+          onReject={handleRejectEvent}
         />
       </section>
 

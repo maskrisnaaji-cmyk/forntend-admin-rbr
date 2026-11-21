@@ -9,4 +9,9 @@ export interface EventItem {
   total: number;
   status: string;
   image?: string;
+  category?: string;
+  organizer_name?: string;
+  organizer_contact?: string;
+  organizer_email?: string;
+  description?: string;
 }

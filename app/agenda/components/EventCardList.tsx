@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, Ticket, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Ticket, Pencil, Trash2, Check, X as XIcon, Clock, User } from 'lucide-react';
 import { EventItem } from './types';
 import { formatRupiah } from '@/lib/formatCurrency';
 import { formatISODateToIndonesian } from '@/lib/formatDate';
@@ -10,12 +10,16 @@ interface EventCardListProps {
   events: EventItem[];
   onEdit: (event: EventItem) => void;
   onDelete: (event: EventItem) => void;
+  onApprove?: (event: EventItem) => void;
+  onReject?: (event: EventItem) => void;
 }
 
 export const EventCardList: React.FC<EventCardListProps> = ({
   events,
   onEdit,
   onDelete,
+  onApprove,
+  onReject,
 }) => {
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
 
@@ -69,12 +73,19 @@ export const EventCardList: React.FC<EventCardListProps> = ({
       {events.map((event) => {
         const percent = Math.min(100, Math.round((event.sold / event.total) * 100));
         const isFull = event.status === 'Penuh' || event.sold >= event.total;
+        const isPending =
+          event.status === 'Menunggu Persetujuan' || event.status === 'Pending';
+        const isRejected = event.status === 'Ditolak';
         const bannerSrc = resolveEventImage(event);
 
         return (
           <div
             key={event.id}
-            className="group flex flex-col rounded-2xl border border-brand-cream-accent bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+            className={`group flex flex-col rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${
+              isPending
+                ? 'border-amber-300 ring-1 ring-amber-200'
+                : 'border-brand-cream-accent'
+            }`}
           >
             {/* Foto Banner Agenda */}
             <div className="relative h-44 w-full bg-stone-100 overflow-hidden">
@@ -92,17 +103,31 @@ export const EventCardList: React.FC<EventCardListProps> = ({
               <div className="absolute top-3 left-3">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm ${
-                    isFull
+                    isPending
+                      ? 'bg-amber-500/95 text-white'
+                      : isRejected
+                      ? 'bg-rose-600/95 text-white'
+                      : isFull
                       ? 'bg-rose-500/90 text-white'
                       : 'bg-emerald-600/90 text-white'
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      isFull ? 'bg-white' : 'bg-emerald-200 animate-pulse'
+                      isPending
+                        ? 'bg-amber-100 animate-pulse'
+                        : isFull
+                        ? 'bg-white'
+                        : 'bg-emerald-200 animate-pulse'
                     }`}
                   />
-                  {isFull ? 'Tiket Penuh' : 'Tiket Tersedia'}
+                  {isPending
+                    ? 'Menunggu Persetujuan'
+                    : isRejected
+                    ? 'Ditolak'
+                    : isFull
+                    ? 'Tiket Penuh'
+                    : 'Tiket Tersedia'}
                 </span>
               </div>
             </div>
@@ -147,6 +172,17 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                   <MapPin size={14} className="text-brand-maroon shrink-0" />
                   <span className="line-clamp-1">{event.location}</span>
                 </div>
+                {event.organizer_name && (
+                  <div className="flex items-center gap-2 text-brand-text font-medium">
+                    <User size={14} className="text-brand-gold shrink-0" />
+                    <span className="line-clamp-1">
+                      Fasilitator: {event.organizer_name}
+                      {event.organizer_contact
+                        ? ` (${event.organizer_contact})`
+                        : ''}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Progress Bar Kuota Tiket */}
@@ -168,6 +204,35 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Action Bar Persetujuan Lokakarya */}
+              {isPending && onApprove && (
+                <div className="mt-3 pt-2.5 border-t border-amber-200/60 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    Pengajuan Lokakarya
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {onReject && (
+                      <button
+                        type="button"
+                        onClick={() => onReject(event)}
+                        title="Tolak Pengajuan"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                      >
+                        <XIcon size={12} /> Tolak
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onApprove(event)}
+                      title="Setujui Lokakarya agar Tayang Publik"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer"
+                    >
+                      <Check size={12} /> Setujui
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
