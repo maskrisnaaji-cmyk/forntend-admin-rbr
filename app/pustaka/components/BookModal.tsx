@@ -30,8 +30,8 @@ export const BookModal: React.FC<BookModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen ? '' : 'pointer-events-none hidden'}`}>
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
           <div className="flex items-center gap-2">

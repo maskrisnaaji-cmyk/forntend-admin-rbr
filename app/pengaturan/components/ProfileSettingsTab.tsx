@@ -55,6 +55,8 @@ export const ProfileSettingsTab: React.FC<ProfileSettingsTabProps> = ({ onNotify
           sessionStorage.setItem('user', JSON.stringify({ ...parsed, name, email }));
         } catch (_) {}
       }
+      // Beritahu komponen lain (mis. Sidebar) agar memperbarui profil
+      window.dispatchEvent(new Event('admin-profile-updated'));
     }
 
     setTimeout(() => {

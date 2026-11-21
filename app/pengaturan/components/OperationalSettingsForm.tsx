@@ -37,7 +37,7 @@ export const OperationalSettingsForm: React.FC = () => {
         <label className="mb-1 block text-xs font-semibold text-brand-text">Alamat Lengkap</label>
         <textarea
           rows={2}
-          defaultValue="Jl. Magelang No. 102, Sleman, DI Yogyakarta"
+          defaultValue="Jl. Diponegoro No. 03, Malang"
           className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
         />
       </div>

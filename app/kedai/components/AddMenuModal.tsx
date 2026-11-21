@@ -49,8 +49,8 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
     <>
       {/* MODAL DIALOG "+ TAMBAH MENU BARU" / "EDIT MENU" */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen ? '' : 'pointer-events-none hidden'}`}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6B1D2F]/10 text-[#6B1D2F]">
@@ -253,8 +253,8 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
 
       {/* Modal Konfirmasi Hapus Menu */}
       {deleteModalOpen && menuToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-brand-cream-accent bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${deleteModalOpen && menuToDelete ? '' : 'pointer-events-none hidden'}`}>
+          <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
               <Trash2 size={22} />
             </div>
