@@ -35,7 +35,7 @@ function mapOrderRow(d: any): OrderItem {
     table: d.table_number || d.table || '-',
     table_number: d.table_number || d.table,
     items: d.items_summary || (Array.isArray(d.items)
-      ? d.items.map((i: any) => `${i.qty || 1}x ${i.name}`).join(', ')
+      ? d.items.map((i: any) => `${i.quantity || i.qty || 1}x ${i.name}`).join(', ')
       : String(d.items || '')),
     items_summary: d.items_summary,
     total: totalStr,
