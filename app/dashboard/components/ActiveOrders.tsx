@@ -20,6 +20,8 @@ export interface ActiveOrder {
   total_formatted: string;
   status: string;
   payment_status: string;
+  payment_method?: string;
+  payment_type?: string;
   order_status: string;
   created_at: string;
   time_ago: string;
@@ -95,13 +97,22 @@ export const ActiveOrders: React.FC<ActiveOrdersProps> = ({
             className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-brand-cream-accent bg-brand-cream-card p-4 hover:border-brand-maroon/30 transition-colors"
           >
             <div>
-              <div className="mb-1 flex items-center gap-2">
+              <div className="mb-1 flex items-center gap-2 flex-wrap">
                 <span className="rounded bg-brand-maroon px-2 py-0.5 text-xs font-bold text-white">
                   {order.table_number || 'Meja --'}
                 </span>
                 <span className="text-xs font-semibold text-brand-text">
                   Order #{order.order_code}
                 </span>
+                {order.payment_method && (
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    order.payment_method.toLowerCase().includes('qris')
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}>
+                    {order.payment_method.toLowerCase().includes('qris') ? 'QRIS' : 'Kasir'}
+                  </span>
+                )}
                 <span className="text-[10px] text-brand-muted">• {order.time_ago}</span>
               </div>
               <p className="text-xs text-brand-muted line-clamp-1">{order.items_summary}</p>

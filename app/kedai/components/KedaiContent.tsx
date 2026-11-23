@@ -15,6 +15,7 @@ import { MenuCardList } from './MenuCardList';
 import { AddMenuModal } from './AddMenuModal';
 import { OrderQueue } from './OrderQueue';
 import { OrderModal } from './OrderModal';
+import { PaymentDetailModal } from './PaymentDetailModal';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 const ORDER_POLL_INTERVAL_MS = 5000;
@@ -29,6 +30,17 @@ function mapOrderRow(d: any): OrderItem {
   const totalStr = d.total ||
     (d.total_price ? `Rp ${Number(d.total_price).toLocaleString('id-ID')}` : 'Rp 0');
 
+  const paymentStatusRaw = String(d.payment_status || '').toUpperCase();
+  const payment_status: 'UNPAID' | 'PAID' | 'EXPIRED' =
+    paymentStatusRaw === 'PAID'
+      ? 'PAID'
+      : paymentStatusRaw === 'EXPIRED'
+      ? 'EXPIRED'
+      : 'UNPAID';
+
+  const payment_method = d.payment_method || d.payment_type ||
+    (String(d.payment_type || d.method || '').toLowerCase().includes('qris') ? 'qris' : 'cash');
+
   return {
     id: d.order_code || d.id || '',
     order_code: d.order_code || d.id,
@@ -40,7 +52,13 @@ function mapOrderRow(d: any): OrderItem {
     items_summary: d.items_summary,
     total: totalStr,
     total_price: d.total_price ? Number(d.total_price) : undefined,
-    payment_status: d.payment_status as 'UNPAID' | 'PAID',
+    payment_status,
+    payment_method,
+    payment_type: payment_method,
+    created_at: d.created_at,
+    expired_at: d.expired_at,
+    qr_url: d.qr_url,
+    qr_string: d.qr_string,
     order_status: d.order_status,
     status,
     time: d.time || 'Baru saja',
@@ -88,10 +106,34 @@ export const KedaiContent: React.FC = () => {
   }, [fetchOrders]);
 
   const [filter, setFilter] = useState('semua');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<OrderItem | null>(null);
+
+  const [paymentDetailModalOpen, setPaymentDetailModalOpen] = useState(false);
+  const [orderForPayment, setOrderForPayment] = useState<OrderItem | null>(null);
+
+  const handleOpenPaymentDetail = (order: OrderItem) => {
+    setOrderForPayment(order);
+    setPaymentDetailModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (orderId: string) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              payment_status: 'PAID',
+              status: o.status === 'menunggu' ? 'disiapkan' : o.status,
+            }
+          : o
+      )
+    );
+    fetchOrders(true);
+  };
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -216,13 +258,20 @@ export const KedaiContent: React.FC = () => {
 
   const filteredOrders = orders.filter((o) => {
     const matchFilter = filter === 'semua' ? true : o.status === filter;
+    const isQris = (o.payment_method || o.payment_type || '').toLowerCase().includes('qris');
+    const matchPayment =
+      paymentMethodFilter === 'semua'
+        ? true
+        : paymentMethodFilter === 'qris'
+        ? isQris
+        : !isQris; // 'cash'
     const matchSearch =
       searchQuery.trim() === ''
         ? true
         : o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           o.table.toLowerCase().includes(searchQuery.toLowerCase()) ||
           o.items.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchFilter && matchSearch;
+    return matchFilter && matchPayment && matchSearch;
   });
 
   // ----------------------------------------------------
@@ -678,11 +727,14 @@ export const KedaiContent: React.FC = () => {
               orders={filteredOrders}
               filter={filter}
               setFilter={setFilter}
+              paymentMethodFilter={paymentMethodFilter}
+              setPaymentMethodFilter={setPaymentMethodFilter}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               onCycleStatus={handleCycleStatus}
               onEdit={handleOpenEdit}
               onDelete={handleRequestDelete}
+              onOpenPaymentDetail={handleOpenPaymentDetail}
             />
           )}
         </section>
@@ -721,6 +773,17 @@ export const KedaiContent: React.FC = () => {
           setOrderToDelete(null);
         }}
         onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* PAYMENT DETAIL & CONFIRMATION MODAL */}
+      <PaymentDetailModal
+        isOpen={paymentDetailModalOpen}
+        order={orderForPayment}
+        onClose={() => {
+          setPaymentDetailModalOpen(false);
+          setOrderForPayment(null);
+        }}
+        onPaymentSuccess={handlePaymentSuccess}
       />
 
       {/* MENU MODALS */}

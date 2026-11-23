@@ -86,17 +86,30 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">Status Pesanan</label>
-                <select
-                  value={currentOrder.status || 'menunggu'}
-                  onChange={(e) => onChange({ status: e.target.value as OrderStatus })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
-                >
-                  <option value="menunggu">Menunggu Bayar</option>
-                  <option value="disiapkan">Disiapkan Barista</option>
-                  <option value="selesai">Selesai</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">Status Pesanan</label>
+                  <select
+                    value={currentOrder.status || 'menunggu'}
+                    onChange={(e) => onChange({ status: e.target.value as OrderStatus })}
+                    className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+                  >
+                    <option value="menunggu">Menunggu Bayar</option>
+                    <option value="disiapkan">Disiapkan Barista</option>
+                    <option value="selesai">Selesai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">Metode Pembayaran</label>
+                  <select
+                    value={currentOrder.payment_method || currentOrder.payment_type || 'cash'}
+                    onChange={(e) => onChange({ payment_method: e.target.value, payment_type: e.target.value })}
+                    className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white font-medium"
+                  >
+                    <option value="cash">Bayar di Kasir (Tunai)</option>
+                    <option value="qris">QRIS (Midtrans Sandbox)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="mt-5 flex items-center justify-end gap-2.5 pt-2">
