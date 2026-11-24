@@ -78,6 +78,7 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
           {[
             { id: 'semua', label: 'Semua Metode', icon: null },
             { id: 'qris', label: 'QRIS', icon: QrCode },
+            { id: 'va', label: 'Virtual Account', icon: CreditCard },
             { id: 'cash', label: 'Bayar di Kasir', icon: Coins },
           ].map((item) => {
             const Icon = item.icon;
@@ -103,10 +104,10 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
       {/* Order List */}
       <div className="grid grid-cols-1 gap-4">
         {orders.map((order) => {
-          const isQris = (order.payment_method || order.payment_type || '').toLowerCase().includes('qris');
-          const isCash = (order.payment_method || order.payment_type || '').toLowerCase().includes('cash') ||
-                         (order.payment_method || order.payment_type || '').toLowerCase().includes('kasir') ||
-                         !isQris;
+          const pm = (order.payment_method || order.payment_type || '').toLowerCase();
+          const isQris = pm.includes('qris');
+          const isVa = pm.includes('va') || pm.includes('bank') || pm.includes('transfer');
+          const isCash = !isQris && !isVa;
           const isPaid = order.payment_status === 'PAID';
           const isExpired = order.payment_status === 'EXPIRED';
 
@@ -123,10 +124,14 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
                   <span className="text-xs font-bold text-brand-text">#{order.id}</span>
                   <span className="text-[10px] text-brand-muted">• {order.time}</span>
 
-                  {/* Badge Metode Pembayaran Kedai (HANYA QRIS / BAYAR DI KASIR) */}
+                  {/* Badge Metode Pembayaran Kedai */}
                   {isQris ? (
                     <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                       <QrCode size={11} /> QRIS
+                    </span>
+                  ) : isVa ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                      <CreditCard size={11} /> Virtual Account
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">

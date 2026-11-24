@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, QrCode, Coins, Clock, AlertTriangle, CheckCircle2, RefreshCw, Zap } from 'lucide-react';
+import { X, QrCode, Coins, Clock, AlertTriangle, CheckCircle2, RefreshCw, Zap, CreditCard, Copy, Check } from 'lucide-react';
 import { OrderItem } from './types';
 
 interface PaymentDetailModalProps {
@@ -19,12 +19,14 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
   onClose,
   onPaymentSuccess,
 }) => {
-  // Hanya 2 metode pembayaran yang didukung untuk kedai: 'qris' dan 'cash' (kasir)
-  const initialMethod = (order?.payment_method || order?.payment_type || '').toLowerCase().includes('qris')
-    ? 'qris'
-    : 'cash';
+  // Metode pembayaran yang didukung untuk kedai: 'qris', 'va', dan 'cash' (kasir)
+  const pm = (order?.payment_method || order?.payment_type || '').toLowerCase();
+  const isInitialQris = pm.includes('qris');
+  const isInitialVa = pm.includes('va') || pm.includes('bank') || pm.includes('transfer');
+  const initialMethod = isInitialQris ? 'qris' : (isInitialVa ? 'va' : 'cash');
 
-  const [selectedMethod, setSelectedMethod] = useState<'qris' | 'cash'>(initialMethod);
+  const [selectedMethod, setSelectedMethod] = useState<'qris' | 'va' | 'cash'>(initialMethod);
+  const [copied, setCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isConfirmingCash, setIsConfirmingCash] = useState(false);
@@ -33,8 +35,10 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
   // Sync selectedMethod saat order berubah
   useEffect(() => {
     if (order) {
-      const isQris = (order.payment_method || order.payment_type || '').toLowerCase().includes('qris');
-      setSelectedMethod(isQris ? 'qris' : 'cash');
+      const currentPm = (order.payment_method || order.payment_type || '').toLowerCase();
+      const currentIsQris = currentPm.includes('qris');
+      const currentIsVa = currentPm.includes('va') || currentPm.includes('bank') || currentPm.includes('transfer');
+      setSelectedMethod(currentIsQris ? 'qris' : (currentIsVa ? 'va' : 'cash'));
       setActionMessage(null);
     }
   }, [order]);
@@ -144,7 +148,7 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: order.id,
-          paymentType: 'qris',
+          paymentType: selectedMethod === 'va' ? 'bank_transfer' : 'qris',
           grossAmount: rawPrice,
         }),
       });
@@ -152,7 +156,7 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
       if (data.success) {
         // Konfirmasi juga ke endpoint kedai orders
         await fetch(`${BACKEND_URL}/api/kedai/orders/${order.id}/pay`, { method: 'PATCH' }).catch(() => null);
-        setActionMessage({ type: 'success', text: '✅ Simulasi Sandbox Berhasil: Pesanan QRIS kini LUNAS!' });
+        setActionMessage({ type: 'success', text: `✅ Simulasi Sandbox Berhasil: Pesanan ${selectedMethod === 'va' ? 'Virtual Account' : 'QRIS'} kini LUNAS!` });
         setTimeout(() => {
           onPaymentSuccess(order.id);
           onClose();
@@ -251,37 +255,50 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* OPSI METODE PEMBAYARAN KEDAI (HANYA QRIS & BAYAR DI KASIR) */}
+          {/* OPSI METODE PEMBAYARAN KEDAI */}
           <div>
             <label className="block text-xs font-semibold text-brand-text mb-2">
               Pilihan Metode Pembayaran Kedai:
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedMethod('qris')}
                 disabled={effectiveIsExpired}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
                   selectedMethod === 'qris'
                     ? 'border-brand-maroon bg-brand-maroon text-white shadow'
                     : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
                 } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <QrCode size={16} />
-                <span>QRIS Nasional</span>
+                <QrCode size={15} />
+                <span>QRIS</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMethod('va')}
+                disabled={effectiveIsExpired}
+                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
+                  selectedMethod === 'va'
+                    ? 'border-brand-maroon bg-brand-maroon text-white shadow'
+                    : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
+                } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <CreditCard size={15} />
+                <span>Virtual Account</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedMethod('cash')}
                 disabled={effectiveIsExpired}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
                   selectedMethod === 'cash'
                     ? 'border-brand-maroon bg-brand-maroon text-white shadow'
                     : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
                 } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <Coins size={16} />
-                <span>Bayar di Kasir</span>
+                <Coins size={15} />
+                <span>Kasir</span>
               </button>
             </div>
           </div>

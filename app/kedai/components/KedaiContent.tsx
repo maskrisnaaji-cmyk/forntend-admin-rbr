@@ -258,13 +258,18 @@ export const KedaiContent: React.FC = () => {
 
   const filteredOrders = orders.filter((o) => {
     const matchFilter = filter === 'semua' ? true : o.status === filter;
-    const isQris = (o.payment_method || o.payment_type || '').toLowerCase().includes('qris');
+    const pm = (o.payment_method || o.payment_type || '').toLowerCase();
+    const isQris = pm.includes('qris');
+    const isVa = pm.includes('va') || pm.includes('bank') || pm.includes('transfer');
+    const isCash = !isQris && !isVa;
     const matchPayment =
       paymentMethodFilter === 'semua'
         ? true
         : paymentMethodFilter === 'qris'
         ? isQris
-        : !isQris; // 'cash'
+        : paymentMethodFilter === 'va'
+        ? isVa
+        : isCash;
     const matchSearch =
       searchQuery.trim() === ''
         ? true

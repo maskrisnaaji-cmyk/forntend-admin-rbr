@@ -1,5 +1,5 @@
 export type OrderStatus = 'menunggu' | 'disiapkan' | 'selesai';
-export type KedaiPaymentMethod = 'qris' | 'cash';
+export type KedaiPaymentMethod = 'qris' | 'va' | 'cash';
 
 export interface OrderItem {
   id: string;
@@ -12,13 +12,15 @@ export interface OrderItem {
   total: string;
   total_price?: number;
   payment_status?: 'UNPAID' | 'PAID' | 'EXPIRED';
-  /** Metode pembayaran kedai: hanya mendukung 'qris' dan 'cash' (bayar di kasir) */
-  payment_method?: 'qris' | 'cash' | string;
-  payment_type?: 'qris' | 'cash' | string;
+  /** Metode pembayaran kedai: mendukung 'qris', 'va', dan 'cash' (bayar di kasir) */
+  payment_method?: 'qris' | 'va' | 'cash' | string;
+  payment_type?: 'qris' | 'va' | 'cash' | string;
   created_at?: string;
   expired_at?: string;
   qr_url?: string;
   qr_string?: string;
+  va_number?: string;
+  bank_name?: string;
   /** order_status dari backend: 'Menunggu' | 'Disiapkan' | 'Selesai' */
   order_status?: string;
   status: OrderStatus;
