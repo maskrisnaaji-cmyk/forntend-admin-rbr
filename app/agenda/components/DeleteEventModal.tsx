@@ -1,6 +1,7 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 import { EventItem } from './types';
 
@@ -17,13 +18,17 @@ export const DeleteEventModal: React.FC<DeleteEventModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  if (!isOpen || !eventToDelete) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !eventToDelete || !mounted || typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${
-        isOpen && eventToDelete ? '' : 'pointer-events-none hidden'
-      }`}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -57,7 +62,8 @@ export const DeleteEventModal: React.FC<DeleteEventModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

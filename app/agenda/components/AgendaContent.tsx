@@ -6,7 +6,6 @@ import { EventItem, EventStatus } from './types';
 import { EventCardList } from './EventCardList';
 import { EventModal } from './EventModal';
 import { DeleteEventModal } from './DeleteEventModal';
-import { formatRupiah } from '@/lib/formatCurrency';
 import { normalizeDateToISO } from '@/lib/formatDate';
 
 const BACKEND_URL = 'http://localhost:5000';
@@ -31,14 +30,37 @@ function mapBackendEvent(d: any): EventItem {
     status = 'Tiket Penuh';
   }
 
+  let rawPrice = 0;
+  if (typeof d.price === 'number') {
+    rawPrice = d.price;
+  } else if (d.price) {
+    const cleanStr = String(d.price).trim();
+    if (cleanStr.toLowerCase() === 'gratis' || cleanStr.toLowerCase() === 'free') {
+      rawPrice = 0;
+    } else {
+      // Ambil angka saja (mencegah bug parseFloat("25.000") menjadi 25)
+      const digits = cleanStr.replace(/[^0-9]/g, '');
+      rawPrice = Number(digits) || 0;
+    }
+  }
+
+  // Koreksi jika angka ribuan terpangkas dari database/input lama (misal 25 -> 25000)
+  if (rawPrice > 0 && rawPrice < 1000) {
+    rawPrice = rawPrice * 1000;
+  }
+
+  const formattedPrice = rawPrice === 0
+    ? 'Gratis'
+    : `Rp ${new Intl.NumberFormat('id-ID').format(rawPrice)}`;
+
   return {
     id: Number(d.id),
     title: d.title || d.tittle || '',
     date: d.date || '',
     time: d.time || '',
     location: d.location || 'Pendopo Utama RBR',
-    price: formatRupiah(d.price),
-    priceRaw: Number(d.price) || 0,
+    price: formattedPrice,
+    priceRaw: rawPrice,
     sold: bookedCount,
     booked_count: bookedCount,
     quota,
@@ -145,8 +167,8 @@ export const AgendaContent: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       time: '15:00 - 18:00 WIB',
       location: 'Pendopo Utama RBR',
-      price: '50000',
-      priceRaw: 50000,
+      price: '25000',
+      priceRaw: 25000,
       sold: 0,
       booked_count: 0,
       quota: 50,
@@ -162,10 +184,20 @@ export const AgendaContent: React.FC = () => {
     setIsEditing(true);
     setSaveError(null);
     setSelectedBannerFile(null);
+
+    let rawPriceNum = typeof event.priceRaw === 'number' && event.priceRaw > 0
+      ? event.priceRaw
+      : Number(String(event.price || '').replace(/[^0-9]/g, '')) || 0;
+
+    if (rawPriceNum > 0 && rawPriceNum < 1000) {
+      rawPriceNum = rawPriceNum * 1000;
+    }
+
     setCurrentEvent({
       ...event,
       category: event.category || 'Budaya',
-      price: String(event.priceRaw || 0),
+      price: String(rawPriceNum || 0),
+      priceRaw: rawPriceNum,
     });
     setBannerPreview(event.image || '');
     setFormModalOpen(true);
@@ -178,13 +210,18 @@ export const AgendaContent: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
 
-    const numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
+    let numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
+    if (numericPrice > 0 && numericPrice < 1000) {
+      numericPrice = numericPrice * 1000;
+    }
+    numericPrice = Math.round(numericPrice);
+
     const numericQuota = Number(currentEvent.quota) || 50;
     const numericBooked = Number(currentEvent.booked_count ?? currentEvent.sold) || 0;
     const isoDate = normalizeDateToISO(currentEvent.date);
 
     // Status: jika admin set "Tiket Penuh" manual, hormati; jika booked >= quota, paksa Tiket Penuh
-    let statusVal: EventStatus = currentEvent.status as EventStatus || 'Tiket Tersedia';
+    let statusVal: EventStatus = (currentEvent.status as EventStatus) || 'Tiket Tersedia';
     if (numericBooked >= numericQuota && numericQuota > 0) {
       statusVal = 'Tiket Penuh';
     }
@@ -233,7 +270,7 @@ export const AgendaContent: React.FC = () => {
       date: isoDate,
       time: currentEvent.time || '',
       location: currentEvent.location || 'Pendopo Utama RBR',
-      price: numericPrice,
+      price: numericPrice, // Integer murni (misal 25000)
       quota: numericQuota,
       booked_count: numericBooked,
       sold: numericBooked,
@@ -274,7 +311,7 @@ export const AgendaContent: React.FC = () => {
         const errMsg = errData?.message || `HTTP ${res.status}: Gagal menyimpan event.`;
         console.error('[AgendaContent] Gagal simpan event:', errData);
         setSaveError(errMsg);
-        return; // Jangan tutup modal — biarkan user melihat error
+        return;
       }
 
       // Refresh daftar dari backend setelah simpan
@@ -503,3 +540,5 @@ export const AgendaContent: React.FC = () => {
     </div>
   );
 };
+
+export default AgendaContent;

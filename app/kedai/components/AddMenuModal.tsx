@@ -49,11 +49,19 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
     <>
       {/* MODAL DIALOG "+ TAMBAH MENU BARU" / "EDIT MENU" */}
       {isOpen && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen ? '' : 'pointer-events-none hidden'}`}>
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${
+            isOpen ? '' : 'pointer-events-none hidden'
+          }`}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
+            {/* Header */}
             <div className="mb-4 flex items-center justify-between border-b border-brand-cream-accent pb-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6B1D2F]/10 text-[#6B1D2F]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-maroon/10 text-brand-maroon">
                   <Coffee size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-brand-text">
@@ -69,25 +77,24 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
               </button>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-4 text-xs">
-              {/* Input Text: Nama Menu */}
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Nama Menu <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => onChange({ name: e.target.value })}
-                  placeholder="misal: Es Kopi Susu Creamy Gula Aren"
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-[#6B1D2F] focus:outline-none"
-                />
-              </div>
+            {/* Form */}
+            <form onSubmit={onSubmit} className="space-y-3 text-xs">
+              {/* Grid 2 Kolom: Nama Menu & Kategori */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Nama Menu <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => onChange({ name: e.target.value })}
+                    placeholder="misal: Es Kopi Susu Creamy"
+                    className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+                  />
+                </div>
 
-              {/* Grid 2 Kolom: Kategori & Harga */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Select Dropdown: Kategori */}
                 <div>
                   <label className="mb-1 block font-semibold text-brand-text">
                     Kategori <span className="text-rose-500">*</span>
@@ -95,7 +102,7 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
                   <select
                     value={formData.category}
                     onChange={(e) => onChange({ category: e.target.value as MenuCategory })}
-                    className="w-full rounded-xl border border-brand-cream-accent bg-white p-2.5 text-xs focus:border-[#6B1D2F] focus:outline-none"
+                    className="w-full rounded-xl border border-brand-cream-accent bg-white p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
                   >
                     <option value="Kopi Nusantara">Kopi Nusantara</option>
                     <option value="Manual Brew">Manual Brew</option>
@@ -103,8 +110,10 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
                     <option value="Camilan Nusantara">Camilan Nusantara</option>
                   </select>
                 </div>
+              </div>
 
-                {/* Input Number: Harga (Rp) */}
+              {/* Grid 2 Kolom: Harga & Status Menu */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block font-semibold text-brand-text">
                     Harga (Rp) <span className="text-rose-500">*</span>
@@ -125,116 +134,123 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
                         })
                       }
                       placeholder="misal: 28000"
-                      className="w-full rounded-xl border border-brand-cream-accent py-2.5 pl-9 pr-3 text-xs focus:border-[#6B1D2F] focus:outline-none"
+                      className="w-full rounded-xl border border-brand-cream-accent py-2.5 pl-9 pr-3 text-xs focus:border-brand-maroon focus:outline-none"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">Status Menu</label>
+                  <div className="flex items-center gap-4 h-[38px]">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="menuStatus"
+                        value="Tersedia"
+                        checked={formData.status === 'Tersedia'}
+                        onChange={() => onChange({ status: 'Tersedia' })}
+                        className="accent-brand-maroon h-4 w-4 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-brand-text flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span>
+                        Tersedia
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="menuStatus"
+                        value="Habis"
+                        checked={formData.status === 'Habis'}
+                        onChange={() => onChange({ status: 'Habis' })}
+                        className="accent-brand-maroon h-4 w-4 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-brand-text flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 inline-block"></span>
+                        Habis
+                      </span>
+                    </label>
                   </div>
                 </div>
               </div>
 
-              {/* Textarea: Deskripsi Komposisi/Singkat */}
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Deskripsi Komposisi/Singkat
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => onChange({ description: e.target.value })}
-                  placeholder="misal: Espresso blend dengan sirup gula aren organik dan susu segar creamy..."
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-[#6B1D2F] focus:outline-none"
-                />
-              </div>
-
-              {/* Upload Foto Menu */}
-              <div>
-                <label className="mb-1.5 block font-semibold text-brand-text">
-                  Upload Foto Menu
-                </label>
-                <label
-                  htmlFor="menu-image-upload"
-                  className="flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-brand-cream-accent bg-[#FAF6F0] cursor-pointer hover:border-[#C59A3F] hover:bg-[#FAF6F0]/80 transition-all overflow-hidden"
-                  style={{ minHeight: imagePreview ? 'auto' : '100px' }}
-                >
-                  {imagePreview ? (
-                    <div className="relative w-full overflow-hidden rounded-xl bg-stone-100 flex items-center justify-center">
-                      <img
-                        src={imagePreview.startsWith('assets/images/') ? `/${imagePreview.replace('assets/images/', '')}` : imagePreview}
-                        alt="Preview foto menu"
-                        className="w-full max-h-44 object-cover rounded-xl"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <span className="absolute bottom-2 right-2 rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1 text-[10px] font-bold text-white flex items-center gap-1">
-                        <ImageUp size={12} /> Ganti foto
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 py-5 text-brand-muted">
-                      <ImageUp size={24} strokeWidth={1.5} className="text-[#C59A3F]" />
-                      <span className="text-xs font-semibold">Klik untuk pilih foto menu</span>
-                      <span className="text-[10px]">JPG, PNG, WEBP — maks. 5MB</span>
-                    </div>
-                  )}
-                </label>
-                <input
-                  id="menu-image-upload"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={onImageChange}
-                />
-              </div>
-
-              {/* Radio Option: Status Menu ("Tersedia" / "Habis") */}
-              <div>
-                <label className="mb-1.5 block font-semibold text-brand-text">Status Menu</label>
-                <div className="flex items-center gap-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="menuStatus"
-                      value="Tersedia"
-                      checked={formData.status === 'Tersedia'}
-                      onChange={() => onChange({ status: 'Tersedia' })}
-                      className="accent-[#6B1D2F] h-4 w-4"
-                    />
-                    <span className="text-xs font-medium text-brand-text flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span>
-                      Tersedia
-                    </span>
+              {/* Grid 2 Kolom: Deskripsi Singkat & Upload Foto Menu */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Deskripsi Singkat
                   </label>
+                  <textarea
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => onChange({ description: e.target.value })}
+                    placeholder="misal: Espresso blend dengan susu segar creamy..."
+                    className="w-full h-[88px] rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none resize-none"
+                  />
+                </div>
 
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="menuStatus"
-                      value="Habis"
-                      checked={formData.status === 'Habis'}
-                      onChange={() => onChange({ status: 'Habis' })}
-                      className="accent-[#6B1D2F] h-4 w-4"
-                    />
-                    <span className="text-xs font-medium text-brand-text flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-rose-500 inline-block"></span>
-                      Habis
-                    </span>
+                <div>
+                  <label className="mb-1 block font-semibold text-brand-text">
+                    Foto Menu
                   </label>
+                  <label
+                    htmlFor="menu-image-upload"
+                    className="flex flex-col items-center justify-center w-full h-[88px] rounded-xl border-2 border-dashed border-brand-cream-accent bg-[#FAF6F0] cursor-pointer hover:border-brand-maroon hover:bg-rose-50/20 transition-all overflow-hidden"
+                  >
+                    {imagePreview ? (
+                      <div className="relative w-full h-full flex items-center justify-center bg-stone-100">
+                        <img
+                          src={
+                            imagePreview.startsWith('assets/images/')
+                              ? `/${imagePreview.replace('assets/images/', '')}`
+                              : imagePreview
+                          }
+                          alt="Preview foto menu"
+                          className="h-full w-auto object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-xl">
+                          <span className="text-white text-[10px] font-bold flex items-center gap-1">
+                            <ImageUp size={12} /> Ganti foto
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-2 text-brand-muted text-center">
+                        <ImageUp size={16} className="text-brand-maroon mb-1" />
+                        <span className="text-[11px] font-semibold text-brand-text leading-tight">
+                          Upload foto menu
+                        </span>
+                        <span className="text-[9px] text-brand-muted">Maks. 5MB</span>
+                      </div>
+                    )}
+                  </label>
+                  <input
+                    id="menu-image-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={onImageChange}
+                  />
                 </div>
               </div>
 
               {/* Modal Action Buttons */}
-              <div className="mt-6 flex items-center justify-end gap-2.5 pt-3 border-t border-brand-cream-accent">
+              <div className="mt-4 flex items-center justify-end gap-2.5 pt-3 border-t border-brand-cream-accent">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-[#D4AF37] bg-white px-4 py-2.5 text-xs font-bold text-stone-700 hover:bg-[#FAF6F0] transition-colors cursor-pointer"
+                  className="rounded-xl border border-brand-cream-accent bg-brand-cream-card px-4 py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="rounded-xl bg-[#6B1D2F] px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-[#802135] transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   {isUploading ? (
                     <>
@@ -253,7 +269,14 @@ export const AddMenuModal: React.FC<AddMenuModalProps> = ({
 
       {/* Modal Konfirmasi Hapus Menu */}
       {deleteModalOpen && menuToDelete && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${deleteModalOpen && menuToDelete ? '' : 'pointer-events-none hidden'}`}>
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${
+            deleteModalOpen && menuToDelete ? '' : 'pointer-events-none hidden'
+          }`}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCloseDeleteModal();
+          }}
+        >
           <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
               <Trash2 size={22} />

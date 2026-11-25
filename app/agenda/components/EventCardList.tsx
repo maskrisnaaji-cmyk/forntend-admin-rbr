@@ -1,10 +1,41 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, Ticket, Pencil, Trash2, Check, X as XIcon, Clock, User } from 'lucide-react';
+import { Calendar, MapPin, Users, Ticket, Pencil, Trash2, Check, X as XIcon, User } from 'lucide-react';
 import { EventItem } from './types';
-import { formatRupiah } from '@/lib/formatCurrency';
 import { formatISODateToIndonesian } from '@/lib/formatDate';
+
+/**
+ * Format harga tiket untuk kartu agenda secara utuh (contoh: "Rp 25.000", "Rp 35.000", atau "Gratis").
+ * Mencegah angka ribuan terpangkas menjadi "Rp 25" dan menjaga tampilan tetap rapi di satu baris.
+ */
+export function formatCardPrice(event: EventItem): string {
+  const priceStr = String(event.price || '').trim();
+  if (
+    priceStr.toLowerCase() === 'gratis' ||
+    priceStr.toLowerCase() === 'free' ||
+    (event.priceRaw === 0 && (priceStr === '' || priceStr === '0' || priceStr === 'Rp 0'))
+  ) {
+    return 'Gratis';
+  }
+
+  let num = typeof event.priceRaw === 'number' && event.priceRaw > 0
+    ? event.priceRaw
+    : 0;
+
+  if (!num && priceStr) {
+    const digits = priceStr.replace(/[^0-9]/g, '');
+    num = Number(digits) || 0;
+  }
+
+  // Jika angka bernilai kecil (< 1000) dan > 0, berarti terjadi pemotongan ribuan (misal 25 untuk 25.000)
+  if (num > 0 && num < 1000) {
+    num = num * 1000;
+  }
+
+  if (num === 0) return 'Gratis';
+  return `Rp ${new Intl.NumberFormat('id-ID').format(num)}`;
+}
 
 interface EventCardListProps {
   events: EventItem[];
@@ -153,8 +184,8 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                   {event.title}
                 </h3>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-xs font-extrabold text-brand-maroon whitespace-nowrap">
-                    {formatRupiah(event.price)}
+                  <span className="text-xs font-extrabold text-brand-maroon whitespace-nowrap shrink-0">
+                    {formatCardPrice(event)}
                   </span>
                   <button
                     type="button"
