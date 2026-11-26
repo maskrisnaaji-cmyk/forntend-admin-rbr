@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Clock, Coffee, RefreshCw } from 'lucide-react';
@@ -77,8 +77,13 @@ function mapOrderRow(d: any): OrderItem {
     payment_type: payment_method,
     created_at: d.created_at,
     expired_at: d.expired_at,
+    paid_at: d.paid_at || d.payment_time || (payment_status === 'PAID' ? d.updated_at : undefined),
+    payment_time: d.payment_time,
+    updated_at: d.updated_at,
     qr_url: d.qr_url,
     qr_string: d.qr_string,
+    va_number: d.va_number,
+    bank_name: d.bank_name,
     order_status: d.order_status,
     status,
     time: d.time || 'Baru saja',
@@ -147,6 +152,7 @@ export const KedaiContent: React.FC = () => {
           ? {
               ...o,
               payment_status: 'PAID',
+              paid_at: new Date().toISOString(),
               status: o.status === 'menunggu' ? 'disiapkan' : o.status,
             }
           : o
@@ -687,8 +693,8 @@ export const KedaiContent: React.FC = () => {
               onClick={handleOpenCreateMenu}
               className="flex items-center justify-center gap-2 rounded-xl bg-[#6B1D2F] border border-[#D4AF37] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#802135] transition-all cursor-pointer"
             >
-              <Plus size={16} className="text-[#D4AF37]" />
-              <span>+ Tambah Menu Baru</span>
+              <Plus size={16} className="text-white" />
+              <span>Tambah Menu Baru</span>
             </button>
           </div>
         )}

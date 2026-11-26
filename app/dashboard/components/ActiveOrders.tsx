@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Clock, Coffee } from 'lucide-react';
+import { formatOrderRelativeTime } from '@/lib/formatDate';
 
 export interface ActiveOrderItem {
   name: string;
@@ -24,6 +25,9 @@ export interface ActiveOrder {
   payment_type?: string;
   order_status: string;
   created_at: string;
+  paid_at?: string;
+  payment_time?: string;
+  updated_at?: string;
   time_ago: string;
 }
 
@@ -51,6 +55,14 @@ export const ActiveOrders: React.FC<ActiveOrdersProps> = ({
   loading = false,
 }) => {
   const router = useRouter();
+  const [currentTime, setCurrentTime] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="lg:col-span-7 rounded-2xl border border-brand-cream-accent bg-white p-5 sm:p-6 shadow-sm">
@@ -113,7 +125,7 @@ export const ActiveOrders: React.FC<ActiveOrdersProps> = ({
                     {order.payment_method.toLowerCase().includes('qris') ? 'QRIS' : 'Kasir'}
                   </span>
                 )}
-                <span className="text-[10px] text-brand-muted">• {order.time_ago}</span>
+                <span className="text-[10px] text-brand-muted">• {formatOrderRelativeTime(order, currentTime)}</span>
               </div>
               <p className="text-xs text-brand-muted line-clamp-1">{order.items_summary}</p>
               <p className="mt-1 text-xs font-extrabold text-brand-maroon">{order.total_formatted}</p>

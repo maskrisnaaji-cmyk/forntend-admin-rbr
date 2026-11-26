@@ -17,6 +17,9 @@ export interface OrderItem {
   payment_type?: 'qris' | 'va' | 'cash' | string;
   created_at?: string;
   expired_at?: string;
+  paid_at?: string;
+  payment_time?: string;
+  updated_at?: string;
   qr_url?: string;
   qr_string?: string;
   va_number?: string;

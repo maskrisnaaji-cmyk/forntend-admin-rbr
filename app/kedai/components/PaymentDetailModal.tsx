@@ -198,7 +198,7 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
         {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-brand-cream-accent pb-3">
@@ -255,51 +255,30 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* OPSI METODE PEMBAYARAN KEDAI */}
+          {/* METODE PEMBAYARAN KEDAI (MENGIKUTI METODE YANG DIPILIH/DIGUNAKAN USER) */}
           <div>
             <label className="block text-xs font-semibold text-brand-text mb-2">
-              Pilihan Metode Pembayaran Kedai:
+              Metode Pembayaran:
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedMethod('qris')}
-                disabled={effectiveIsExpired}
-                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
-                  selectedMethod === 'qris'
-                    ? 'border-brand-maroon bg-brand-maroon text-white shadow'
-                    : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
-                } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <QrCode size={15} />
-                <span>QRIS</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedMethod('va')}
-                disabled={effectiveIsExpired}
-                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
-                  selectedMethod === 'va'
-                    ? 'border-brand-maroon bg-brand-maroon text-white shadow'
-                    : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
-                } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <CreditCard size={15} />
-                <span>Virtual Account</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedMethod('cash')}
-                disabled={effectiveIsExpired}
-                className={`flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs font-bold transition-all cursor-pointer ${
-                  selectedMethod === 'cash'
-                    ? 'border-brand-maroon bg-brand-maroon text-white shadow'
-                    : 'border-brand-cream-accent bg-white text-brand-text hover:border-brand-maroon/40'
-                } ${effectiveIsExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Coins size={15} />
-                <span>Kasir</span>
-              </button>
+            <div>
+              {selectedMethod === 'qris' && (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 shadow-xs">
+                  <QrCode size={16} />
+                  <span>QRIS</span>
+                </div>
+              )}
+              {selectedMethod === 'va' && (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-xs">
+                  <CreditCard size={16} />
+                  <span>Virtual Account</span>
+                </div>
+              )}
+              {selectedMethod === 'cash' && (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-800 shadow-xs">
+                  <Coins size={16} />
+                  <span>Bayar di Kasir</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -351,6 +330,74 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
               </p>
 
               {/* Tombol Aksi QRIS */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCheckStatus}
+                  disabled={effectiveIsExpired || isChecking || isPaid}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <RefreshCw size={14} className={isChecking ? 'animate-spin' : ''} />
+                  <span>{isChecking ? 'Mengecek...' : 'Cek Status Pembayaran (Midtrans)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateSettlement}
+                  disabled={effectiveIsExpired || isSimulating || isPaid}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-maroon/30 bg-brand-cream-card py-2 text-xs font-semibold text-brand-maroon hover:bg-brand-cream-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Zap size={14} />
+                  <span>{isSimulating ? 'Memproses Simulasi...' : '⚡ Simulasi Lunas (Demo Sandbox)'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* CONTENT: TAB VIRTUAL ACCOUNT (POLA MIDTRANS SANDBOX) */}
+          {selectedMethod === 'va' && (
+            <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
+              <div className="flex items-center justify-between border-b border-brand-cream-accent pb-2">
+                <span className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
+                  {order.bank_name || 'VIRTUAL ACCOUNT'}
+                </span>
+                <span className="text-[10px] font-bold text-brand-muted tracking-wider">
+                  MIDTRANS SANDBOX
+                </span>
+                <span className="rounded bg-stone-800 px-2 py-0.5 text-[10px] font-black text-white">
+                  ATM / MBANKING
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 space-y-2 text-center">
+                <span className="text-[11px] font-semibold text-brand-muted">Nomor Virtual Account</span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-base font-extrabold text-brand-text tracking-wider">
+                    {order.va_number || order.order_code || order.id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.va_number || order.order_code || order.id);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    title="Salin No. VA"
+                    className="rounded-lg p-1 text-brand-muted hover:text-brand-text hover:bg-stone-200 transition-colors cursor-pointer"
+                  >
+                    {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                  </button>
+                </div>
+                {copied && <span className="text-[10px] text-emerald-600 font-bold block">Tersalin ke clipboard!</span>}
+              </div>
+
+              <p className="text-center text-[11px] text-brand-muted">
+                {effectiveIsExpired
+                  ? 'Nomor Virtual Account telah kedaluwarsa dan tidak dapat dibayar lagi.'
+                  : 'Pelanggan dapat melakukan transfer ke nomor Virtual Account di atas melalui ATM atau Mobile Banking.'}
+              </p>
+
+              {/* Tombol Aksi VA */}
               <div className="space-y-2 pt-1">
                 <button
                   type="button"

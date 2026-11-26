@@ -97,3 +97,63 @@ export function formatISODateToIndonesian(isoStr: string | null | undefined): st
   return `${day} ${monthName} ${year}`;
 }
 
+/**
+ * Format relative time (e.g. 'Baru saja', '1 mnt lalu', '5 mnt lalu', '1 jam lalu')
+ * Berdasarkan timestamp pembayaran (paid_at / payment_time / updated_at saat lunas) dengan fallback ke created_at.
+ */
+export function formatOrderRelativeTime(
+  order: {
+    paid_at?: string | null;
+    payment_time?: string | null;
+    updated_at?: string | null;
+    created_at?: string | null;
+    payment_status?: string | null;
+    time?: string | null;
+    time_ago?: string | null;
+  },
+  now: number = Date.now()
+): string {
+  const paymentStatus = String(order.payment_status || '').toUpperCase();
+  const isPaid = paymentStatus === 'PAID' || paymentStatus === 'SETTLEMENT' || paymentStatus === 'CAPTURE';
+
+  let timeSource: string | null | undefined = null;
+  if (isPaid) {
+    timeSource = order.paid_at || order.payment_time || order.updated_at || order.created_at;
+  } else {
+    timeSource = order.created_at || order.paid_at || order.payment_time || order.updated_at;
+  }
+
+  if (!timeSource || typeof timeSource !== 'string' || !timeSource.trim()) {
+    return order.time || order.time_ago || 'Baru saja';
+  }
+
+  let date = new Date(timeSource);
+  if (isNaN(date.getTime()) && timeSource.includes(' ')) {
+    date = new Date(timeSource.replace(' ', 'T'));
+  }
+
+  if (isNaN(date.getTime())) {
+    return order.time || order.time_ago || 'Baru saja';
+  }
+
+  const diffMs = Math.max(0, now - date.getTime());
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 60) {
+    return 'Baru saja';
+  }
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) {
+    return `${diffMin} mnt lalu`;
+  }
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) {
+    return `${diffHours} jam lalu`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} hari lalu`;
+}
+

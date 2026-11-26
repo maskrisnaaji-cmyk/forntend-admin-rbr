@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Clock, AlertCircle, CheckCircle2, Pencil, Trash2, Coffee, QrCode, Coins, CreditCard, AlertTriangle } from 'lucide-react';
 import { OrderItem } from './types';
+import { formatOrderRelativeTime } from '@/lib/formatDate';
 
 interface OrderQueueProps {
   orders: OrderItem[];
@@ -31,6 +32,14 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
   onDelete,
   onOpenPaymentDetail,
 }) => {
+  const [currentTime, setCurrentTime] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* Filter Status Tabs, Payment Method Tabs & Search */}
@@ -122,7 +131,7 @@ export const OrderQueue: React.FC<OrderQueueProps> = ({
                     {order.table_number || order.table}
                   </span>
                   <span className="text-xs font-bold text-brand-text">#{order.id}</span>
-                  <span className="text-[10px] text-brand-muted">• {order.time}</span>
+                  <span className="text-[10px] text-brand-muted">• {formatOrderRelativeTime(order, currentTime)}</span>
 
                   {/* Badge Metode Pembayaran Kedai */}
                   {isQris ? (
