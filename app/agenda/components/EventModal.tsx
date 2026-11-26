@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { Ticket, X, ImageUp } from 'lucide-react';
+import React from 'react';
+import { Ticket, ImageUp } from 'lucide-react';
+import { AdminModal } from '@/components/ui/AdminModal';
 import { EventItem } from './types';
 import { normalizeDateToISO } from '@/lib/formatDate';
 
@@ -33,282 +33,260 @@ export const EventModal: React.FC<EventModalProps> = ({
   onBannerChange,
   onSubmit,
 }) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!isOpen || !mounted || typeof document === 'undefined') return null;
+  if (!isOpen) return null;
 
   const displayImage = bannerPreview || currentEvent.image || '';
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-modal-pop">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-brand-cream-accent p-4 sm:p-5 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-maroon/10 text-brand-maroon">
-              <Ticket size={16} />
+  return (
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <span className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-maroon/10 text-brand-maroon shrink-0">
+            <Ticket size={15} />
+          </span>
+          <span>{isEditing ? 'Edit Event' : 'Tambah Event Baru'}</span>
+        </span>
+      }
+      subtitle={isEditing ? 'Perbarui jadwal, kuota, atau rincian tiket acara' : 'Buat jadwal acara dan reservasi tiket budaya baru'}
+      size="xl"
+      footer={
+        <div className="space-y-2">
+          {saveError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+              ⚠ {saveError}
             </div>
-            <h3 className="text-sm font-bold text-brand-text">
-              {isEditing ? 'Edit Event' : 'Tambah Event Baru'}
-            </h3>
+          )}
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="event-form"
+              disabled={isUploading || isSaving}
+              className="rounded-xl bg-[#5C1D24] px-5 py-2 text-sm font-semibold text-white hover:bg-[#4A161C] transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+            >
+              {isUploading ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Mengunggah file...</span>
+                </>
+              ) : isSaving ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-brand-muted hover:bg-brand-cream-card hover:text-brand-text transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
+        </div>
+      }
+    >
+      <form id="event-form" onSubmit={onSubmit} className="space-y-3.5 text-xs">
+        {/* Judul Event */}
+        <div>
+          <label className="mb-1 block font-semibold text-brand-text">
+            Judul Acara <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            value={currentEvent.title || ''}
+            onChange={(e) => onChange({ title: e.target.value })}
+            className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+            placeholder="Contoh: Diskusi Artefak Kuno"
+          />
         </div>
 
-        {/* Form */}
-        <form onSubmit={onSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
-            {/* Judul Event */}
-            <div>
-              <label className="mb-1 block font-semibold text-brand-text">
-                Judul Acara <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={currentEvent.title || ''}
-                onChange={(e) => onChange({ title: e.target.value })}
-                className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="Contoh: Diskusi Artefak Kuno"
-              />
-            </div>
+        {/* Tanggal & Waktu (Grid 2 Kolom) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Tanggal Acara <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={normalizeDateToISO(currentEvent.date)}
+              onChange={(e) => onChange({ date: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Waktu <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={currentEvent.time || ''}
+              onChange={(e) => onChange({ time: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="15:00 - 18:00 WIB"
+            />
+          </div>
+        </div>
 
-            {/* Tanggal & Waktu (Grid 2 Kolom) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Tanggal Acara <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={normalizeDateToISO(currentEvent.date)}
-                  onChange={(e) => onChange({ date: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Waktu <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={currentEvent.time || ''}
-                  onChange={(e) => onChange({ time: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                  placeholder="15:00 - 18:00 WIB"
-                />
-              </div>
-            </div>
+        {/* Harga & Kuota (Grid 2 Kolom) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Harga Tiket (Rp) <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              required
+              value={currentEvent.price ?? ''}
+              onChange={(e) => onChange({ price: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="misal: 25000 (0 untuk Gratis)"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Total Kuota <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              required
+              value={currentEvent.quota ?? 50}
+              onChange={(e) => onChange({ quota: Number(e.target.value) })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+            />
+          </div>
+        </div>
 
-            {/* Harga & Kuota (Grid 2 Kolom) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Harga Tiket (Rp) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  required
-                  value={currentEvent.price ?? ''}
-                  onChange={(e) => onChange({ price: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                  placeholder="misal: 25000 (0 untuk Gratis)"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Total Kuota <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={currentEvent.quota ?? 50}
-                  onChange={(e) => onChange({ quota: Number(e.target.value) })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                />
-              </div>
-            </div>
+        {/* Lokasi & Kategori (Grid 2 Kolom) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Lokasi <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={currentEvent.location || ''}
+              onChange={(e) => onChange({ location: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="Pendopo Utama RBR"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">Kategori</label>
+            <select
+              value={currentEvent.category || 'Budaya'}
+              onChange={(e) => onChange({ category: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+            >
+              <option value="Budaya">Budaya</option>
+              <option value="Teater">Teater</option>
+              <option value="Pameran">Pameran</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Musik">Musik</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
 
-            {/* Lokasi & Kategori (Grid 2 Kolom) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">
-                  Lokasi <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={currentEvent.location || ''}
-                  onChange={(e) => onChange({ location: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                  placeholder="Pendopo Utama RBR"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">Kategori</label>
-                <select
-                  value={currentEvent.category || 'Budaya'}
-                  onChange={(e) => onChange({ category: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
-                >
-                  <option value="Budaya">Budaya</option>
-                  <option value="Teater">Teater</option>
-                  <option value="Pameran">Pameran</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="Musik">Musik</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
-              </div>
-            </div>
+        {/* Status Tiket & Tiket Terjual (Grid 2 Kolom) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">Status Tiket</label>
+            <select
+              value={currentEvent.status || 'Tiket Tersedia'}
+              onChange={(e) =>
+                onChange({ status: e.target.value as 'Tiket Tersedia' | 'Tiket Penuh' })
+              }
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+            >
+              <option value="Tiket Tersedia">Tiket Tersedia</option>
+              <option value="Tiket Penuh">Tiket Penuh (Tutup Penjualan)</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block font-semibold text-brand-text">Tiket Terjual</label>
+            <input
+              type="number"
+              min="0"
+              value={currentEvent.booked_count ?? currentEvent.sold ?? 0}
+              onChange={(e) =>
+                onChange({
+                  booked_count: Number(e.target.value),
+                  sold: Number(e.target.value),
+                })
+              }
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+            />
+          </div>
+        </div>
 
-            {/* Status Tiket & Tiket Terjual (Grid 2 Kolom) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">Status Tiket</label>
-                <select
-                  value={currentEvent.status || 'Tiket Tersedia'}
-                  onChange={(e) =>
-                    onChange({ status: e.target.value as 'Tiket Tersedia' | 'Tiket Penuh' })
-                  }
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
-                >
-                  <option value="Tiket Tersedia">Tiket Tersedia</option>
-                  <option value="Tiket Penuh">Tiket Penuh (Tutup Penjualan)</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block font-semibold text-brand-text">Tiket Terjual</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={currentEvent.booked_count ?? currentEvent.sold ?? 0}
-                  onChange={(e) =>
-                    onChange({
-                      booked_count: Number(e.target.value),
-                      sold: Number(e.target.value),
-                    })
-                  }
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* URL & Upload Banner Event (Grid 2 Kolom) */}
-            <div>
-              <label className="mb-1 block font-semibold text-brand-text">
-                URL / Upload Banner Event
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                <input
-                  type="text"
-                  value={currentEvent.image || ''}
-                  onChange={(e) => onChange({ image: e.target.value })}
-                  className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-                  placeholder="URL gambar (contoh: https://...)"
-                />
-                <label
-                  htmlFor="banner-upload"
-                  className={`flex w-full h-[38px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed transition-colors overflow-hidden px-3 ${
-                    displayImage
-                      ? 'border-brand-maroon bg-rose-50/20'
-                      : 'border-brand-cream-accent bg-[#FAF6F0] hover:border-brand-maroon hover:bg-rose-50/10'
-                  }`}
-                >
-                  {displayImage ? (
-                    <div className="flex items-center gap-2 w-full justify-between">
-                      <img
-                        src={
-                          displayImage.startsWith('assets/images/')
-                            ? `/${displayImage.replace('assets/images/', '')}`
-                            : displayImage
-                        }
-                        alt="Preview"
-                        className="h-6 w-10 object-cover rounded shrink-0"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <span className="text-[11px] font-semibold text-brand-maroon truncate">Ganti Banner</span>
-                      <ImageUp size={14} className="text-brand-maroon shrink-0" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-brand-muted">
-                      <ImageUp size={14} className="text-brand-maroon" />
-                      <span className="text-[11px] font-semibold text-brand-text">Upload Banner</span>
-                    </div>
-                  )}
-                  <input
-                    id="banner-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={onBannerChange}
+        {/* URL & Upload Banner Event (Grid 2 Kolom) */}
+        <div>
+          <label className="mb-1 block font-semibold text-brand-text">
+            URL / Upload Banner Event
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            <input
+              type="text"
+              value={currentEvent.image || ''}
+              onChange={(e) => onChange({ image: e.target.value })}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              placeholder="URL gambar (contoh: https://...)"
+            />
+            <label
+              htmlFor="banner-upload"
+              className={`flex w-full h-[38px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed transition-colors overflow-hidden px-3 ${
+                displayImage
+                  ? 'border-brand-maroon bg-rose-50/20'
+                  : 'border-brand-cream-accent bg-[#FAF6F0] hover:border-brand-maroon hover:bg-rose-50/10'
+              }`}
+            >
+              {displayImage ? (
+                <div className="flex items-center gap-2 w-full justify-between">
+                  <img
+                    src={
+                      displayImage.startsWith('assets/images/')
+                        ? `/${displayImage.replace('assets/images/', '')}`
+                        : displayImage
+                    }
+                    alt="Preview"
+                    className="h-6 w-10 object-cover rounded shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
                   />
-                </label>
-              </div>
-            </div>
+                  <span className="text-[11px] font-semibold text-brand-maroon truncate">Ganti Banner</span>
+                  <ImageUp size={14} className="text-brand-maroon shrink-0" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-brand-muted">
+                  <ImageUp size={14} className="text-brand-maroon" />
+                  <span className="text-[11px] font-semibold text-brand-text">Upload Banner</span>
+                </div>
+              )}
+              <input
+                id="banner-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onBannerChange}
+              />
+            </label>
           </div>
-
-          {/* Action Buttons (Pinned Footer) */}
-          <div className="border-t border-brand-cream-accent p-4 sm:p-5 shrink-0 bg-white space-y-2">
-            {saveError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
-                ⚠ {saveError}
-              </div>
-            )}
-            <div className="flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-brand-cream-accent bg-brand-cream-card px-4 py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={isUploading || isSaving}
-                className="rounded-xl bg-brand-maroon px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
-              >
-                {isUploading ? (
-                  <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Mengunggah file...</span>
-                  </>
-                ) : isSaving ? (
-                  <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Menyimpan...</span>
-                  </>
-                ) : (
-                  <span>{isEditing ? 'Simpan Perubahan' : 'Simpan Agenda'}</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
+        </div>
+      </form>
+    </AdminModal>
   );
 };
 

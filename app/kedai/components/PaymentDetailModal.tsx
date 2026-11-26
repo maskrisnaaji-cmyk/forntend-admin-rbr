@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, QrCode, Coins, Clock, AlertTriangle, CheckCircle2, RefreshCw, Zap, CreditCard, Copy, Check } from 'lucide-react';
+import { QrCode, Coins, Clock, AlertTriangle, CheckCircle2, RefreshCw, Zap, CreditCard, Copy, Check } from 'lucide-react';
+import { AdminModal } from '@/components/ui/AdminModal';
 import { OrderItem } from './types';
 
 interface PaymentDetailModalProps {
@@ -198,284 +199,14 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-brand-cream-accent pb-3">
-          <div>
-            <h3 className="text-sm font-bold text-brand-text">Konfirmasi &amp; Detail Bayar Kedai</h3>
-            <p className="text-[11px] text-brand-muted">Order #{order.id} • {order.table_number || order.table}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-brand-muted hover:bg-brand-cream-card hover:text-brand-text transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          {/* TIMER COUNTDOWN 30 MENIT */}
-          {isPaid ? (
-            <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs font-bold text-emerald-700">
-              <CheckCircle2 size={16} />
-              <span>PEMBAYARAN TELAH LUNAS</span>
-            </div>
-          ) : effectiveIsExpired ? (
-            <div className="flex items-center justify-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-2.5 text-xs font-bold text-rose-700">
-              <AlertTriangle size={16} />
-              <span>WAKTU PEMBAYARAN KEDALUWARSA (00:00)</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
-              <div className="flex items-center gap-2 text-xs font-medium text-amber-900">
-                <Clock size={16} className="text-amber-700" />
-                <span>Batas Pembayaran (30 Menit):</span>
-              </div>
-              <span className="text-sm font-extrabold text-amber-700 tracking-wider">
-                {timeFormatted}
-              </span>
-            </div>
-          )}
-
-          {/* Rincian Singkat Pesanan */}
-          <div className="rounded-xl border border-brand-cream-accent bg-brand-cream-card/50 p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-brand-muted">Nomor Meja</span>
-              <span className="font-bold text-brand-text">{order.table_number || order.table}</span>
-            </div>
-            <div className="flex items-start justify-between text-xs gap-3">
-              <span className="text-brand-muted shrink-0">Item</span>
-              <span className="font-medium text-brand-text text-right line-clamp-2">{order.items}</span>
-            </div>
-            <div className="border-t border-brand-cream-accent pt-2 flex items-center justify-between">
-              <span className="text-xs font-bold text-brand-text">Total Tagihan</span>
-              <span className="text-base font-extrabold text-brand-maroon">{order.total}</span>
-            </div>
-          </div>
-
-          {/* METODE PEMBAYARAN KEDAI (MENGIKUTI METODE YANG DIPILIH/DIGUNAKAN USER) */}
-          <div>
-            <label className="block text-xs font-semibold text-brand-text mb-2">
-              Metode Pembayaran:
-            </label>
-            <div>
-              {selectedMethod === 'qris' && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 shadow-xs">
-                  <QrCode size={16} />
-                  <span>QRIS</span>
-                </div>
-              )}
-              {selectedMethod === 'va' && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-xs">
-                  <CreditCard size={16} />
-                  <span>Virtual Account</span>
-                </div>
-              )}
-              {selectedMethod === 'cash' && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-800 shadow-xs">
-                  <Coins size={16} />
-                  <span>Bayar di Kasir</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* CONTENT: TAB QRIS (POLA MIDTRANS SANDBOX) */}
-          {selectedMethod === 'qris' && (
-            <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
-              <div className="flex items-center justify-between border-b border-brand-cream-accent pb-2">
-                <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
-                  QRIS
-                </span>
-                <span className="text-[10px] font-bold text-brand-muted tracking-wider">
-                  MIDTRANS SANDBOX
-                </span>
-                <span className="rounded bg-blue-900 px-2 py-0.5 text-[10px] font-black text-white">
-                  GPN
-                </span>
-              </div>
-
-              {/* Box Gambar QR */}
-              <div className="relative mx-auto flex h-48 w-48 items-center justify-center rounded-xl border border-stone-200 bg-white p-2 shadow-inner">
-                {order.qr_url ? (
-                  <img
-                    src={order.qr_url}
-                    alt="QRIS Midtrans"
-                    className={`h-full w-full object-contain ${effectiveIsExpired ? 'opacity-20' : ''}`}
-                  />
-                ) : (
-                  <div className={`flex flex-col items-center justify-center text-center p-3 ${effectiveIsExpired ? 'opacity-20' : ''}`}>
-                    <QrCode size={90} className="text-brand-text mb-1" />
-                    <span className="text-[9px] font-mono text-brand-muted">NMID: ID10200392019</span>
-                  </div>
-                )}
-
-                {/* Overlay Kedaluwarsa */}
-                {effectiveIsExpired && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 rounded-xl">
-                    <span className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white shadow-md">
-                      KEDALUWARSA
-                    </span>
-                    <span className="mt-1 text-[10px] font-bold text-rose-600">00:00 Habis</span>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-center text-[11px] text-brand-muted">
-                {effectiveIsExpired
-                  ? 'Kode QR telah kedaluwarsa dan tidak dapat dipindai lagi.'
-                  : 'Pelanggan dapat memindai QRIS ini via m-Banking atau E-Wallet (BCA Mobile, GoPay, OVO, ShopeePay, DANA).'}
-              </p>
-
-              {/* Tombol Aksi QRIS */}
-              <div className="space-y-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCheckStatus}
-                  disabled={effectiveIsExpired || isChecking || isPaid}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <RefreshCw size={14} className={isChecking ? 'animate-spin' : ''} />
-                  <span>{isChecking ? 'Mengecek...' : 'Cek Status Pembayaran (Midtrans)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSimulateSettlement}
-                  disabled={effectiveIsExpired || isSimulating || isPaid}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-maroon/30 bg-brand-cream-card py-2 text-xs font-semibold text-brand-maroon hover:bg-brand-cream-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Zap size={14} />
-                  <span>{isSimulating ? 'Memproses Simulasi...' : '⚡ Simulasi Lunas (Demo Sandbox)'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* CONTENT: TAB VIRTUAL ACCOUNT (POLA MIDTRANS SANDBOX) */}
-          {selectedMethod === 'va' && (
-            <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
-              <div className="flex items-center justify-between border-b border-brand-cream-accent pb-2">
-                <span className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
-                  {order.bank_name || 'VIRTUAL ACCOUNT'}
-                </span>
-                <span className="text-[10px] font-bold text-brand-muted tracking-wider">
-                  MIDTRANS SANDBOX
-                </span>
-                <span className="rounded bg-stone-800 px-2 py-0.5 text-[10px] font-black text-white">
-                  ATM / MBANKING
-                </span>
-              </div>
-
-              <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 space-y-2 text-center">
-                <span className="text-[11px] font-semibold text-brand-muted">Nomor Virtual Account</span>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="font-mono text-base font-extrabold text-brand-text tracking-wider">
-                    {order.va_number || order.order_code || order.id}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(order.va_number || order.order_code || order.id);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                    title="Salin No. VA"
-                    className="rounded-lg p-1 text-brand-muted hover:text-brand-text hover:bg-stone-200 transition-colors cursor-pointer"
-                  >
-                    {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                  </button>
-                </div>
-                {copied && <span className="text-[10px] text-emerald-600 font-bold block">Tersalin ke clipboard!</span>}
-              </div>
-
-              <p className="text-center text-[11px] text-brand-muted">
-                {effectiveIsExpired
-                  ? 'Nomor Virtual Account telah kedaluwarsa dan tidak dapat dibayar lagi.'
-                  : 'Pelanggan dapat melakukan transfer ke nomor Virtual Account di atas melalui ATM atau Mobile Banking.'}
-              </p>
-
-              {/* Tombol Aksi VA */}
-              <div className="space-y-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCheckStatus}
-                  disabled={effectiveIsExpired || isChecking || isPaid}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <RefreshCw size={14} className={isChecking ? 'animate-spin' : ''} />
-                  <span>{isChecking ? 'Mengecek...' : 'Cek Status Pembayaran (Midtrans)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSimulateSettlement}
-                  disabled={effectiveIsExpired || isSimulating || isPaid}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-maroon/30 bg-brand-cream-card py-2 text-xs font-semibold text-brand-maroon hover:bg-brand-cream-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Zap size={14} />
-                  <span>{isSimulating ? 'Memproses Simulasi...' : '⚡ Simulasi Lunas (Demo Sandbox)'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* CONTENT: TAB BAYAR DI KASIR */}
-          {selectedMethod === 'cash' && (
-            <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
-              <div className="flex items-center gap-2 text-xs font-bold text-brand-text">
-                <Coins size={16} className="text-amber-600" />
-                <span>Pembayaran Tunai di Meja Kasir</span>
-              </div>
-              <p className="text-xs text-brand-muted leading-relaxed">
-                Pelanggan membayar pesanan secara tunai ke kasir sebesar{' '}
-                <strong className="text-brand-maroon">{order.total}</strong>. Tekan tombol di bawah untuk mengonfirmasi bahwa uang telah diterima dan menyelesaikan pesanan.
-              </p>
-
-              <button
-                type="button"
-                onClick={handleConfirmCashPayment}
-                disabled={effectiveIsExpired || isConfirmingCash || isPaid}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <CheckCircle2 size={16} />
-                <span>{isConfirmingCash ? 'Mengonfirmasi...' : 'Konfirmasi Terima Tunai (Kasir)'}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Action Message Alert */}
-          {actionMessage && (
-            <div
-              className={`rounded-xl px-3.5 py-2.5 text-xs font-medium ${
-                actionMessage.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : actionMessage.type === 'error'
-                  ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                  : 'bg-blue-50 text-blue-800 border border-blue-200'
-              }`}
-            >
-              {actionMessage.text}
-            </div>
-          )}
-
-          {/* Peringatan jika expired */}
-          {effectiveIsExpired && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle size={14} /> Batas Waktu Pembayaran Telah Habis
-              </p>
-              <p className="text-[11px] leading-relaxed">
-                Batas waktu pembayaran 30 menit dari waktu pesanan dibuat telah kedaluwarsa. Seluruh aksi konfirmasi pembayaran telah dinonaktifkan. Silakan batalkan pesanan ini dan buat pesanan baru jika pelanggan ingin memesan kembali.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Modal */}
-        <div className="mt-5 border-t border-brand-cream-accent pt-3 flex justify-end">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Konfirmasi & Detail Bayar Kedai"
+      subtitle={`Order #${order.id} • ${order.table_number || order.table}`}
+      size="md"
+      footer={
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -484,7 +215,266 @@ export const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
             Tutup
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* TIMER COUNTDOWN 30 MENIT */}
+        {isPaid ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs font-bold text-emerald-700">
+            <CheckCircle2 size={16} />
+            <span>PEMBAYARAN TELAH LUNAS</span>
+          </div>
+        ) : effectiveIsExpired ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-2.5 text-xs font-bold text-rose-700">
+            <AlertTriangle size={16} />
+            <span>WAKTU PEMBAYARAN KEDALUWARSA (00:00)</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-amber-900">
+              <Clock size={16} className="text-amber-700" />
+              <span>Batas Pembayaran (30 Menit):</span>
+            </div>
+            <span className="text-sm font-extrabold text-amber-700 tracking-wider">
+              {timeFormatted}
+            </span>
+          </div>
+        )}
+
+        {/* Rincian Singkat Pesanan */}
+        <div className="rounded-xl border border-brand-cream-accent bg-brand-cream-card/50 p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-brand-muted">Nomor Meja</span>
+            <span className="font-bold text-brand-text">{order.table_number || order.table}</span>
+          </div>
+          <div className="flex items-start justify-between text-xs gap-3">
+            <span className="text-brand-muted shrink-0">Item</span>
+            <span className="font-medium text-brand-text text-right line-clamp-2">{order.items}</span>
+          </div>
+          <div className="border-t border-brand-cream-accent pt-2 flex items-center justify-between">
+            <span className="text-xs font-bold text-brand-text">Total Tagihan</span>
+            <span className="text-base font-extrabold text-brand-maroon">{order.total}</span>
+          </div>
+        </div>
+
+        {/* METODE PEMBAYARAN KEDAI (MENGIKUTI METODE YANG DIPILIH/DIGUNAKAN USER) */}
+        <div>
+          <label className="block text-xs font-semibold text-brand-text mb-2">
+            Metode Pembayaran:
+          </label>
+          <div>
+            {selectedMethod === 'qris' && (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 shadow-xs">
+                <QrCode size={16} />
+                <span>QRIS</span>
+              </div>
+            )}
+            {selectedMethod === 'va' && (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-xs">
+                <CreditCard size={16} />
+                <span>Virtual Account</span>
+              </div>
+            )}
+            {selectedMethod === 'cash' && (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-800 shadow-xs">
+                <Coins size={16} />
+                <span>Bayar di Kasir</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CONTENT: TAB QRIS (POLA MIDTRANS SANDBOX) */}
+        {selectedMethod === 'qris' && (
+          <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
+            <div className="flex items-center justify-between border-b border-brand-cream-accent pb-2">
+              <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
+                QRIS
+              </span>
+              <span className="text-[10px] font-bold text-brand-muted tracking-wider">
+                MIDTRANS SANDBOX
+              </span>
+              <span className="rounded bg-blue-900 px-2 py-0.5 text-[10px] font-black text-white">
+                GPN
+              </span>
+            </div>
+
+            {/* Box Gambar QR */}
+            <div className="relative mx-auto flex h-48 w-48 items-center justify-center rounded-xl border border-stone-200 bg-white p-2 shadow-inner">
+              {order.qr_url ? (
+                <img
+                  src={order.qr_url}
+                  alt="QRIS Midtrans"
+                  className={`h-full w-full object-contain ${effectiveIsExpired ? 'opacity-20' : ''}`}
+                />
+              ) : (
+                <div className={`flex flex-col items-center justify-center text-center p-3 ${effectiveIsExpired ? 'opacity-20' : ''}`}>
+                  <QrCode size={90} className="text-brand-text mb-1" />
+                  <span className="text-[9px] font-mono text-brand-muted">NMID: ID10200392019</span>
+                </div>
+              )}
+
+              {/* Overlay Kedaluwarsa */}
+              {effectiveIsExpired && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 rounded-xl">
+                  <span className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white shadow-md">
+                    KEDALUWARSA
+                  </span>
+                  <span className="mt-1 text-[10px] font-bold text-rose-600">00:00 Habis</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-center text-[11px] text-brand-muted">
+              {effectiveIsExpired
+                ? 'Kode QR telah kedaluwarsa dan tidak dapat dipindai lagi.'
+                : 'Pelanggan dapat memindai QRIS ini via m-Banking atau E-Wallet (BCA Mobile, GoPay, OVO, ShopeePay, DANA).'}
+            </p>
+
+            {/* Tombol Aksi QRIS */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleCheckStatus}
+                disabled={effectiveIsExpired || isChecking || isPaid}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <RefreshCw size={14} className={isChecking ? 'animate-spin' : ''} />
+                <span>{isChecking ? 'Mengecek...' : 'Cek Status Pembayaran (Midtrans)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSimulateSettlement}
+                disabled={effectiveIsExpired || isSimulating || isPaid}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-maroon/30 bg-brand-cream-card py-2 text-xs font-semibold text-brand-maroon hover:bg-brand-cream-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Zap size={14} />
+                <span>{isSimulating ? 'Memproses Simulasi...' : '⚡ Simulasi Lunas (Demo Sandbox)'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENT: TAB VIRTUAL ACCOUNT (POLA MIDTRANS SANDBOX) */}
+        {selectedMethod === 'va' && (
+          <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
+            <div className="flex items-center justify-between border-b border-brand-cream-accent pb-2">
+              <span className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
+                {order.bank_name || 'VIRTUAL ACCOUNT'}
+              </span>
+              <span className="text-[10px] font-bold text-brand-muted tracking-wider">
+                MIDTRANS SANDBOX
+              </span>
+              <span className="rounded bg-stone-800 px-2 py-0.5 text-[10px] font-black text-white">
+                ATM / MBANKING
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 space-y-2 text-center">
+              <span className="text-[11px] font-semibold text-brand-muted">Nomor Virtual Account</span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-mono text-base font-extrabold text-brand-text tracking-wider">
+                  {order.va_number || order.order_code || order.id}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(order.va_number || order.order_code || order.id);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  title="Salin No. VA"
+                  className="rounded-lg p-1 text-brand-muted hover:text-brand-text hover:bg-stone-200 transition-colors cursor-pointer"
+                >
+                  {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                </button>
+              </div>
+              {copied && <span className="text-[10px] text-emerald-600 font-bold block">Tersalin ke clipboard!</span>}
+            </div>
+
+            <p className="text-center text-[11px] text-brand-muted">
+              {effectiveIsExpired
+                ? 'Nomor Virtual Account telah kedaluwarsa dan tidak dapat dibayar lagi.'
+                : 'Pelanggan dapat melakukan transfer ke nomor Virtual Account di atas melalui ATM atau Mobile Banking.'}
+            </p>
+
+            {/* Tombol Aksi VA */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleCheckStatus}
+                disabled={effectiveIsExpired || isChecking || isPaid}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-maroon py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <RefreshCw size={14} className={isChecking ? 'animate-spin' : ''} />
+                <span>{isChecking ? 'Mengecek...' : 'Cek Status Pembayaran (Midtrans)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSimulateSettlement}
+                disabled={effectiveIsExpired || isSimulating || isPaid}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-maroon/30 bg-brand-cream-card py-2 text-xs font-semibold text-brand-maroon hover:bg-brand-cream-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Zap size={14} />
+                <span>{isSimulating ? 'Memproses Simulasi...' : '⚡ Simulasi Lunas (Demo Sandbox)'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENT: TAB BAYAR DI KASIR */}
+        {selectedMethod === 'cash' && (
+          <div className="rounded-xl border border-brand-cream-accent bg-white p-4 space-y-3.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-brand-text">
+              <Coins size={16} className="text-amber-600" />
+              <span>Pembayaran Tunai di Meja Kasir</span>
+            </div>
+            <p className="text-xs text-brand-muted leading-relaxed">
+              Pelanggan membayar pesanan secara tunai ke kasir sebesar{' '}
+              <strong className="text-brand-maroon">{order.total}</strong>. Tekan tombol di bawah untuk mengonfirmasi bahwa uang telah diterima dan menyelesaikan pesanan.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleConfirmCashPayment}
+              disabled={effectiveIsExpired || isConfirmingCash || isPaid}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <CheckCircle2 size={16} />
+              <span>{isConfirmingCash ? 'Mengonfirmasi...' : 'Konfirmasi Terima Tunai (Kasir)'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Action Message Alert */}
+        {actionMessage && (
+          <div
+            className={`rounded-xl px-3.5 py-2.5 text-xs font-medium ${
+              actionMessage.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : actionMessage.type === 'error'
+                ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                : 'bg-blue-50 text-blue-800 border border-blue-200'
+            }`}
+          >
+            {actionMessage.text}
+          </div>
+        )}
+
+        {/* Peringatan jika expired */}
+        {effectiveIsExpired && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <AlertTriangle size={14} /> Batas Waktu Pembayaran Telah Habis
+            </p>
+            <p className="text-[11px] leading-relaxed">
+              Batas waktu pembayaran 30 menit dari waktu pesanan dibuat telah kedaluwarsa. Seluruh aksi konfirmasi pembayaran telah dinonaktifkan. Silakan batalkan pesanan ini dan buat pesanan baru jika pelanggan ingin memesan kembali.
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </AdminModal>
   );
 };

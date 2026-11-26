@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import { AdminModal } from '@/components/ui/AdminModal';
 import { BookItem } from './types';
 
 interface DeleteBookModalProps {
@@ -20,37 +21,43 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
   if (!isOpen || !bookToDelete) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4 ${isOpen && bookToDelete ? '' : 'pointer-events-none hidden'}`}>
-      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-2xl animate-modal-pop">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
-          <Trash2 size={22} />
-        </div>
-        <h3 className="text-center text-sm font-bold text-brand-text">Konfirmasi Hapus Pustaka</h3>
-        <p className="mt-2 text-center text-xs text-brand-muted leading-relaxed">
-          Apakah Anda yakin ingin menghapus buku{' '}
-          <span className="font-semibold text-brand-text">
-            &ldquo;{bookToDelete.title}&rdquo; ({bookToDelete.code})
-          </span>
-          ? Tindakan ini tidak dapat dibatalkan.
-        </p>
-        <div className="mt-6 flex items-center gap-2.5">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Konfirmasi Hapus Pustaka"
+      size="md"
+      footer={
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-brand-cream-accent bg-brand-cream-card py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer"
+            className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer"
+            className="flex-1 rounded-xl bg-rose-600 py-2 text-sm font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer"
           >
             Ya, Hapus
           </button>
         </div>
+      }
+    >
+      <div className="text-center py-2">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
+          <Trash2 size={22} />
+        </div>
+        <p className="text-xs text-brand-muted leading-relaxed">
+          Apakah Anda yakin ingin menghapus buku{' '}
+          <span className="font-semibold text-brand-text">
+            &ldquo;{bookToDelete.title}&rdquo; ({bookToDelete.code})
+          </span>
+          ? Tindakan ini tidak dapat dibatalkan.
+        </p>
       </div>
-    </div>
+    </AdminModal>
   );
 };
 

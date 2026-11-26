@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Trash2, Loader2 } from 'lucide-react';
+import { AdminModal } from '@/components/ui/AdminModal';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -21,24 +22,18 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   if (!isOpen || !target) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-modal-pop">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
-          <Trash2 size={22} />
-        </div>
-        <h3 className="text-center text-sm font-bold text-brand-text">
-          Konfirmasi Hapus {target.type === 'member' ? 'Anggota' : 'Kupon Promo'}
-        </h3>
-        <p className="mt-2 text-center text-xs text-brand-muted leading-relaxed">
-          Apakah Anda yakin ingin menghapus {target.type === 'member' ? 'akun anggota' : 'kupon promo'}{' '}
-          <span className="font-semibold text-brand-text">&ldquo;{target.name}&rdquo;</span>? Tindakan ini tidak dapat dibatalkan.
-        </p>
-        <div className="mt-6 flex items-center gap-2.5">
+    <AdminModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Konfirmasi Hapus ${target.type === 'member' ? 'Anggota' : 'Kupon Promo'}`}
+      size="md"
+      footer={
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             disabled={isDeleting}
             onClick={onClose}
-            className="flex-1 rounded-xl border border-brand-cream-accent bg-brand-cream-card py-2.5 text-xs font-bold text-brand-muted hover:bg-brand-cream-accent hover:text-brand-text transition-colors cursor-pointer disabled:opacity-60"
+            className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer disabled:opacity-60"
           >
             Batal
           </button>
@@ -46,14 +41,24 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             type="button"
             disabled={isDeleting}
             onClick={onConfirm}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-60"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2 text-sm font-bold text-white shadow hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-60"
           >
             {isDeleting && <Loader2 size={13} className="animate-spin" />}
             <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
           </button>
         </div>
+      }
+    >
+      <div className="text-center py-2">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-3">
+          <Trash2 size={22} />
+        </div>
+        <p className="text-xs text-brand-muted leading-relaxed">
+          Apakah Anda yakin ingin menghapus {target.type === 'member' ? 'akun anggota' : 'kupon promo'}{' '}
+          <span className="font-semibold text-brand-text">&ldquo;{target.name}&rdquo;</span>? Tindakan ini tidak dapat dibatalkan.
+        </p>
       </div>
-    </div>
+    </AdminModal>
   );
 };
 
