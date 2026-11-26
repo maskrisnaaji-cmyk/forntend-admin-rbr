@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
-import { EventItem, EventStatus } from './types';
+import { EventItem, EventStatus, TicketTier } from './types';
 import { EventCardList } from './EventCardList';
 import { EventModal } from './EventModal';
 import { DeleteEventModal } from './DeleteEventModal';
@@ -11,14 +11,62 @@ import { normalizeDateToISO } from '@/lib/formatDate';
 const BACKEND_URL = 'http://localhost:5000';
 const POLL_INTERVAL_MS = 10_000; // 10 detik
 
+/** Status pembayaran yang dianggap lunas */
+const PAID_STATUSES = ['paid', 'settlement', 'capture', 'success', 'lunas'];
+
+/**
+ * Hitung jumlah tiket lunas per event_id dari API (orders & ticket transactions jika ada)
+ */
+async function fetchPaidTicketCounts(): Promise<Record<number, number>> {
+  const counts: Record<number, number> = {};
+
+  // 1. Ambil dari /api/kedai/orders atau /api/orders
+  try {
+    const resOrders = await fetch(`${BACKEND_URL}/api/orders`, { cache: 'no-store' });
+    if (resOrders.ok) {
+      const orders = await resOrders.json();
+      const list = Array.isArray(orders) ? orders : (orders.data ?? []);
+      for (const ord of list) {
+        const payStatus = String(ord.payment_status || ord.status || '').toLowerCase().trim();
+        if (PAID_STATUSES.includes(payStatus)) {
+          // Cek jika order memiliki event_id atau items tiket
+          if (ord.event_id) {
+            const evId = Number(ord.event_id);
+            const qty = Number(ord.quantity ?? ord.qty ?? 1);
+            counts[evId] = (counts[evId] || 0) + qty;
+          }
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 2. Ambil dari notifikasi jika tercatat transaksi tiket lunas
+  try {
+    const resNotif = await fetch(`${BACKEND_URL}/api/notifications`, { cache: 'no-store' });
+    if (resNotif.ok) {
+      const json = await resNotif.json();
+      const notifs = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+      for (const n of notifs) {
+        const type = String(n.type || '').toLowerCase();
+        const msg = String(n.message || '').toLowerCase();
+        if ((type === 'ticket' || type === 'event' || msg.includes('tiket')) && (msg.includes('lunas') || msg.includes('berhasil'))) {
+          // Notifikasi tiket lunas
+        }
+      }
+    }
+  } catch (_) {}
+
+  return counts;
+}
+
 /** Map respons JSON backend → EventItem */
-function mapBackendEvent(d: any): EventItem {
-  const bookedCount = Number(d.booked_count ?? d.sold ?? 0);
+function mapBackendEvent(d: any, paidTicketsMap: Record<number, number> = {}): EventItem {
+  const eventId = Number(d.id);
+  // Real-time: Tiket terjual murni dari transaksi lunas (abaikan seed/dummy bawaan)
+  const bookedCount = paidTicketsMap[eventId] || 0;
   const quota = Number(d.quota) || 0;
-  const remaining = Number(d.remaining_tickets ?? Math.max(0, quota - bookedCount));
-  const isAvailable = typeof d.is_available === 'boolean'
-    ? d.is_available
-    : bookedCount < quota || quota === 0;
+  const remaining = Math.max(0, quota - bookedCount);
+  const isAvailable = bookedCount < quota || quota === 0;
 
   // Normalkan status ke format baru
   let status: EventStatus = 'Tiket Tersedia';
@@ -30,6 +78,26 @@ function mapBackendEvent(d: any): EventItem {
     status = 'Tiket Penuh';
   }
 
+  // Parse ticket tiers jika tersedia di d.presale_tiers atau d.ticket_tiers
+  let tiers: TicketTier[] = [];
+  if (Array.isArray(d.ticket_tiers) && d.ticket_tiers.length > 0) {
+    tiers = d.ticket_tiers;
+  } else if (Array.isArray(d.presale_tiers) && d.presale_tiers.length > 0) {
+    tiers = d.presale_tiers;
+  } else {
+    // Generate 3 kategori standar: Presale, Reguler, OTS
+    let basePrice = Number(d.price) || 0;
+    if (basePrice > 0 && basePrice < 1000) basePrice *= 1000;
+    const qPresale = Math.round(quota * 0.3) || 15;
+    const qReguler = Math.round(quota * 0.5) || 25;
+    const qOTS = Math.max(0, quota - qPresale - qReguler) || 10;
+    tiers = [
+      { tier_name: 'Presale', tier_order: 1, price: Math.max(0, basePrice - 10000), quota: qPresale, is_active: true },
+      { tier_name: 'Reguler', tier_order: 2, price: basePrice, quota: qReguler, is_active: true },
+      { tier_name: 'OTS', tier_order: 3, price: basePrice + 10000, quota: qOTS, is_active: true },
+    ];
+  }
+
   let rawPrice = 0;
   if (typeof d.price === 'number') {
     rawPrice = d.price;
@@ -38,23 +106,35 @@ function mapBackendEvent(d: any): EventItem {
     if (cleanStr.toLowerCase() === 'gratis' || cleanStr.toLowerCase() === 'free') {
       rawPrice = 0;
     } else {
-      // Ambil angka saja (mencegah bug parseFloat("25.000") menjadi 25)
       const digits = cleanStr.replace(/[^0-9]/g, '');
       rawPrice = Number(digits) || 0;
     }
   }
 
-  // Koreksi jika angka ribuan terpangkas dari database/input lama (misal 25 -> 25000)
   if (rawPrice > 0 && rawPrice < 1000) {
     rawPrice = rawPrice * 1000;
   }
 
-  const formattedPrice = rawPrice === 0
-    ? 'Gratis'
-    : `Rp ${new Intl.NumberFormat('id-ID').format(rawPrice)}`;
+  // Ambil harga terendah dari kategori untuk harga aktif
+  const tierPrices = tiers.map((t) => Number(t.price)).filter((p) => !isNaN(p) && p >= 0);
+  if (tierPrices.length > 0) {
+    rawPrice = Math.min(...tierPrices);
+  }
+
+  const minP = tierPrices.length > 0 ? Math.min(...tierPrices) : rawPrice;
+  const maxP = tierPrices.length > 0 ? Math.max(...tierPrices) : rawPrice;
+
+  let formattedPrice = '';
+  if (minP === 0 && maxP === 0) {
+    formattedPrice = 'Gratis';
+  } else if (minP !== maxP) {
+    formattedPrice = `Rp ${new Intl.NumberFormat('id-ID').format(minP)} - Rp ${new Intl.NumberFormat('id-ID').format(maxP)}`;
+  } else {
+    formattedPrice = `Rp ${new Intl.NumberFormat('id-ID').format(minP)}`;
+  }
 
   return {
-    id: Number(d.id),
+    id: eventId,
     title: d.title || d.tittle || '',
     date: d.date || '',
     time: d.time || '',
@@ -74,6 +154,8 @@ function mapBackendEvent(d: any): EventItem {
     organizer_contact: d.organizer_contact || '',
     organizer_email: d.organizer_email || '',
     description: d.description || '',
+    ticket_tiers: tiers,
+    presale_tiers: tiers,
   };
 }
 
@@ -115,14 +197,18 @@ export const AgendaContent: React.FC = () => {
     if (!silent) setIsLoading(true);
     else setIsFetching(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/events?include_pending=true`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const [resEvents, paidTicketsMap] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/events?include_pending=true`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        }),
+        fetchPaidTicketCounts(),
+      ]);
+
+      if (!resEvents.ok) throw new Error(`HTTP ${resEvents.status}`);
+      const data = await resEvents.json();
       if (Array.isArray(data)) {
-        setEvents(data.map(mapBackendEvent));
+        setEvents(data.map((d) => mapBackendEvent(d, paidTicketsMap)));
         setFetchError(null);
       }
     } catch (e) {
@@ -161,19 +247,29 @@ export const AgendaContent: React.FC = () => {
     setIsEditing(false);
     setSaveError(null);
     setSelectedBannerFile(null);
+    const initialTiers: TicketTier[] = [
+      { tier_name: 'Presale', tier_order: 1, price: 15000, quota: 15, is_active: true },
+      { tier_name: 'Reguler', tier_order: 2, price: 25000, quota: 25, is_active: true },
+      { tier_name: 'OTS', tier_order: 3, price: 35000, quota: 10, is_active: true },
+    ];
+    const totalQuota = initialTiers.reduce((acc, t) => acc + (t.quota || 0), 0);
+    const minPrice = Math.min(...initialTiers.map((t) => t.price));
+
     setCurrentEvent({
       title: '',
       category: 'Budaya',
       date: new Date().toISOString().split('T')[0],
       time: '15:00 - 18:00 WIB',
       location: 'Pendopo Utama RBR',
-      price: '25000',
-      priceRaw: 25000,
+      price: String(minPrice),
+      priceRaw: minPrice,
       sold: 0,
       booked_count: 0,
-      quota: 50,
+      quota: totalQuota,
       status: 'Tiket Tersedia',
       image: '',
+      ticket_tiers: initialTiers,
+      presale_tiers: initialTiers,
     });
     setBannerPreview('');
     setFormModalOpen(true);
@@ -193,11 +289,30 @@ export const AgendaContent: React.FC = () => {
       rawPriceNum = rawPriceNum * 1000;
     }
 
+    const tiers: TicketTier[] = (event.ticket_tiers && event.ticket_tiers.length > 0)
+      ? event.ticket_tiers
+      : (event.presale_tiers && event.presale_tiers.length > 0)
+      ? event.presale_tiers
+      : [
+          { tier_name: 'Presale', tier_order: 1, price: Math.max(0, rawPriceNum - 10000), quota: Math.round((event.quota || 50) * 0.3) || 15, is_active: true },
+          { tier_name: 'Reguler', tier_order: 2, price: rawPriceNum, quota: Math.round((event.quota || 50) * 0.5) || 25, is_active: true },
+          { tier_name: 'OTS', tier_order: 3, price: rawPriceNum + 10000, quota: Math.max(0, (event.quota || 50) - (Math.round((event.quota || 50) * 0.3) || 15) - (Math.round((event.quota || 50) * 0.5) || 25)) || 10, is_active: true },
+        ];
+
+    const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+    const tierPrices = tiers.map((t) => Number(t.price)).filter((p) => !isNaN(p) && p >= 0);
+    const minPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : rawPriceNum;
+
     setCurrentEvent({
       ...event,
       category: event.category || 'Budaya',
-      price: String(rawPriceNum || 0),
-      priceRaw: rawPriceNum,
+      price: String(minPrice || 0),
+      priceRaw: minPrice,
+      quota: totalQuota,
+      sold: event.booked_count ?? event.sold ?? 0,
+      booked_count: event.booked_count ?? event.sold ?? 0,
+      ticket_tiers: tiers,
+      presale_tiers: tiers,
     });
     setBannerPreview(event.image || '');
     setFormModalOpen(true);
@@ -210,13 +325,26 @@ export const AgendaContent: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
 
-    let numericPrice = Number(String(currentEvent.price).replace(/[^0-9]/g, '')) || 0;
+    // Ambil ticket tiers
+    const tiers: TicketTier[] = (currentEvent.ticket_tiers && currentEvent.ticket_tiers.length > 0)
+      ? currentEvent.ticket_tiers
+      : [
+          { tier_name: 'Presale', tier_order: 1, price: 15000, quota: 15, is_active: true },
+          { tier_name: 'Reguler', tier_order: 2, price: 25000, quota: 25, is_active: true },
+          { tier_name: 'OTS', tier_order: 3, price: 35000, quota: 10, is_active: true },
+        ];
+
+    // Total kuota otomatis dari jumlah ketiga kategori
+    const numericQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+
+    // Harga aktif terendah agar tetap kompatibel dengan backend
+    const tierPrices = tiers.map((t) => Number(t.price)).filter((p) => !isNaN(p) && p >= 0);
+    let numericPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : (Number(currentEvent.priceRaw) || 0);
     if (numericPrice > 0 && numericPrice < 1000) {
       numericPrice = numericPrice * 1000;
     }
     numericPrice = Math.round(numericPrice);
 
-    const numericQuota = Number(currentEvent.quota) || 50;
     const numericBooked = Number(currentEvent.booked_count ?? currentEvent.sold) || 0;
     const isoDate = normalizeDateToISO(currentEvent.date);
 
@@ -270,14 +398,16 @@ export const AgendaContent: React.FC = () => {
       date: isoDate,
       time: currentEvent.time || '',
       location: currentEvent.location || 'Pendopo Utama RBR',
-      price: numericPrice, // Integer murni (misal 25000)
-      quota: numericQuota,
+      price: numericPrice, // Harga aktif terendah agar kompatibel
+      quota: numericQuota, // Total kuota 3 kategori
       booked_count: numericBooked,
       sold: numericBooked,
       status: statusVal,
       image: finalImageUrl,
       banner_image: finalImageUrl,
       category: currentEvent.category || 'Budaya',
+      ticket_tiers: tiers,
+      presale_tiers: tiers,
     };
 
     // Baca token dari localStorage jika tersedia

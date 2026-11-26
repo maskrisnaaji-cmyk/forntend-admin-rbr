@@ -6,10 +6,43 @@ import { EventItem } from './types';
 import { formatISODateToIndonesian } from '@/lib/formatDate';
 
 /**
- * Format harga tiket untuk kartu agenda secara utuh (contoh: "Rp 25.000", "Rp 35.000", atau "Gratis").
- * Mencegah angka ribuan terpangkas menjadi "Rp 25" dan menjaga tampilan tetap rapi di satu baris.
+ * Format harga tiket untuk kartu agenda secara utuh:
+ * Menampilkan rentang harga (misal "Rp 20.000 - Rp 35.000") jika event memiliki beberapa harga kategori berbeda,
+ * atau harga tunggal jika hanya satu (contoh: "Rp 25.000" atau "Gratis").
  */
 export function formatCardPrice(event: EventItem): string {
+  // Cek apakah ada ticket_tiers atau presale_tiers dengan harga valid
+  const tiers = (event.ticket_tiers && event.ticket_tiers.length > 0)
+    ? event.ticket_tiers
+    : (event.presale_tiers && event.presale_tiers.length > 0)
+    ? event.presale_tiers
+    : [];
+
+  if (tiers.length > 0) {
+    const prices = tiers
+      .map((t) => Number(t.price))
+      .filter((p) => !isNaN(p) && p >= 0);
+
+    if (prices.length > 0) {
+      const minP = Math.min(...prices);
+      const maxP = Math.max(...prices);
+
+      if (minP === 0 && maxP === 0) return 'Gratis';
+
+      const formatNum = (val: number) => {
+        let n = val > 0 && val < 1000 ? val * 1000 : val;
+        if (n === 0) return 'Gratis';
+        return `Rp ${new Intl.NumberFormat('id-ID').format(n)}`;
+      };
+
+      if (minP !== maxP) {
+        return `${formatNum(minP)} - ${formatNum(maxP)}`;
+      }
+      return formatNum(minP);
+    }
+  }
+
+  // Fallback untuk event tanpa tier array eksplisit
   const priceStr = String(event.price || '').trim();
   if (
     priceStr.toLowerCase() === 'gratis' ||
@@ -17,6 +50,11 @@ export function formatCardPrice(event: EventItem): string {
     (event.priceRaw === 0 && (priceStr === '' || priceStr === '0' || priceStr === 'Rp 0'))
   ) {
     return 'Gratis';
+  }
+
+  // Jika priceStr sudah berbentuk rentang (misal "Rp 20.000 - Rp 35.000")
+  if (priceStr.includes('-')) {
+    return priceStr;
   }
 
   let num = typeof event.priceRaw === 'number' && event.priceRaw > 0
@@ -28,7 +66,6 @@ export function formatCardPrice(event: EventItem): string {
     num = Number(digits) || 0;
   }
 
-  // Jika angka bernilai kecil (< 1000) dan > 0, berarti terjadi pemotongan ribuan (misal 25 untuk 25.000)
   if (num > 0 && num < 1000) {
     num = num * 1000;
   }

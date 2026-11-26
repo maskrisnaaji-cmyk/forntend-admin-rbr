@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -39,8 +39,74 @@ export default function DashboardPage() {
       if (res.ok) {
         const json = await res.json();
         const payload: DashboardData = json.data ?? json;
+        const PAID_STATUSES = ['paid', 'settlement', 'capture', 'success', 'lunas'];
+
+        // Cek transaksi tiket lunas real-time dari API orders
+        let paidTicketCount = 0;
+        let paidTicketRevenue = 0;
+        const paidTicketPerEvent: Record<number, number> = {};
+
+        try {
+          const resOrders = await fetch(`${API_BASE}/api/orders`, { cache: 'no-store' });
+          if (resOrders.ok) {
+            const ordersJson = await resOrders.json();
+            const orderList = Array.isArray(ordersJson) ? ordersJson : (ordersJson.data ?? []);
+            for (const ord of orderList) {
+              const payStatus = String(ord.payment_status || ord.status || '').toLowerCase().trim();
+              if (PAID_STATUSES.includes(payStatus) && ord.event_id) {
+                const evId = Number(ord.event_id);
+                const qty = Number(ord.quantity ?? ord.qty ?? 1);
+                const price = Number(ord.total_price ?? ord.amount ?? 0);
+                paidTicketCount += qty;
+                paidTicketRevenue += price;
+                paidTicketPerEvent[evId] = (paidTicketPerEvent[evId] || 0) + qty;
+              }
+            }
+          }
+        } catch (_) {}
+
+        // Reset tiket terjual dan omset tiket ke angka murni real-time dari transaksi lunas
+        if (payload.ticketsSold) {
+          payload.ticketsSold = {
+            ...payload.ticketsSold,
+            total: paidTicketCount,
+            formatted: `${paidTicketCount} Tiket`,
+            subtitle: `${payload.ticketsSold.activeEventsCount || 0} Event Aktif Kuota Tersedia`,
+          };
+        }
+
+        // Sinkronkan panel Event & Okupansi agar booked_count dihitung dari transaksi lunas
+        if (Array.isArray(payload.eventOccupancy)) {
+          payload.eventOccupancy = payload.eventOccupancy.map((item) => {
+            const realBooked = paidTicketPerEvent[item.id] || 0;
+            const pct = item.quota > 0 ? Math.min(100, Math.round((realBooked / item.quota) * 100)) : 0;
+            return {
+              ...item,
+              booked_count: realBooked,
+              percentage: pct,
+              status: pct >= 100 ? 'Tiket Penuh' : 'Tiket Tersedia',
+            };
+          });
+        }
+
+        // Koreksi chart data jika omset tiket berasal dari seed/dummy:
+        // Jika belum ada tiket lunas (paidTicketRevenue === 0), eventOmset bernilai 0
+        if (Array.isArray(payload.chartData)) {
+          payload.chartData = payload.chartData.map((pt) => {
+            const evOmset = paidTicketRevenue > 0 ? pt.eventOmset : 0;
+            return {
+              ...pt,
+              eventOmset: evOmset,
+              totalOmset: (pt.kedaiOmset || 0) + evOmset,
+            };
+          });
+
+          // Perbarui total chart omset
+          payload.totalChartOmset = payload.chartData.reduce((acc, pt) => acc + pt.totalOmset, 0);
+          payload.totalChartOmsetFormatted = `Rp ${new Intl.NumberFormat('id-ID').format(payload.totalChartOmset)}`;
+        }
+
         // Filter activeOrders client-side: hanya tampilkan yang sudah dibayar dan belum selesai
-        const PAID_STATUSES = ['paid', 'settlement', 'capture', 'success'];
         if (Array.isArray(payload.activeOrders)) {
           payload.activeOrders = payload.activeOrders.filter((order) => {
             const payStatus = String(order.payment_status || '').toLowerCase();

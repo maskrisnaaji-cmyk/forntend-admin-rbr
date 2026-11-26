@@ -135,35 +135,225 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
         </div>
 
-        {/* Harga & Kuota (Grid 2 Kolom) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block font-semibold text-brand-text">
-              Harga Tiket (Rp) <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              required
-              value={currentEvent.price ?? ''}
-              onChange={(e) => onChange({ price: e.target.value })}
-              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-              placeholder="misal: 25000 (0 untuk Gratis)"
-            />
+        {/* 3 Kategori Tiket: Presale, Reguler, OTS */}
+        <div className="rounded-xl border border-brand-cream-accent bg-brand-cream-card/30 p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-brand-text text-xs">
+              Kategori &amp; Kuota Tiket (Presale, Reguler, OTS)
+            </span>
+            <span className="rounded-lg bg-brand-maroon/10 px-2 py-0.5 text-[11px] font-bold text-brand-maroon">
+              Total Kuota: {currentEvent.quota ?? 0} Tiket
+            </span>
           </div>
-          <div>
-            <label className="mb-1 block font-semibold text-brand-text">
-              Total Kuota <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              required
-              value={currentEvent.quota ?? 50}
-              onChange={(e) => onChange({ quota: Number(e.target.value) })}
-              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
-            />
+
+          {/* Baris 1: Presale */}
+          <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
+            <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+              <div>
+                <p className="font-bold text-brand-text text-xs leading-none">Presale</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Tiket Dini / Early Bird</p>
+              </div>
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Harga (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Presale')?.price ??
+                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'Presale');
+                  if (idx >= 0) tiers[idx].price = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
+                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
+                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Kuota Tiket
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Presale')?.quota ?? 15
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'Presale');
+                  if (idx >= 0) tiers[idx].quota = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  onChange({ ticket_tiers: tiers, quota: totalQuota });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="15"
+              />
+            </div>
+          </div>
+
+          {/* Baris 2: Reguler */}
+          <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
+            <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+              <div>
+                <p className="font-bold text-brand-text text-xs leading-none">Reguler</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Tiket Standar Online</p>
+              </div>
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Harga (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Reguler')?.price ??
+                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'Reguler');
+                  if (idx >= 0) tiers[idx].price = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
+                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
+                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Kuota Tiket
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Reguler')?.quota ?? 25
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'Reguler');
+                  if (idx >= 0) tiers[idx].quota = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  onChange({ ticket_tiers: tiers, quota: totalQuota });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="25"
+              />
+            </div>
+          </div>
+
+          {/* Baris 3: OTS */}
+          <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
+            <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+              <div>
+                <p className="font-bold text-brand-text text-xs leading-none">OTS</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">On The Spot (Loket)</p>
+              </div>
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Harga (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'OTS')?.price ??
+                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'OTS');
+                  if (idx >= 0) tiers[idx].price = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
+                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
+                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
+                Kuota Tiket
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={
+                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'OTS')?.quota ?? 10
+                }
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value));
+                  const tiers = [...(currentEvent.ticket_tiers || [
+                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
+                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
+                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
+                  ])];
+                  const idx = tiers.findIndex((t) => t.tier_name === 'OTS');
+                  if (idx >= 0) tiers[idx].quota = val;
+                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+                  onChange({ ticket_tiers: tiers, quota: totalQuota });
+                }}
+                className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
+                placeholder="10"
+              />
+            </div>
           </div>
         </div>
 
@@ -215,18 +405,16 @@ export const EventModal: React.FC<EventModalProps> = ({
             </select>
           </div>
           <div>
-            <label className="mb-1 block font-semibold text-brand-text">Tiket Terjual</label>
+            <label className="mb-1 block font-semibold text-brand-text">
+              Tiket Terjual <span className="text-[10px] text-brand-muted font-normal">(Lunas Real-Time)</span>
+            </label>
             <input
               type="number"
               min="0"
+              readOnly
               value={currentEvent.booked_count ?? currentEvent.sold ?? 0}
-              onChange={(e) =>
-                onChange({
-                  booked_count: Number(e.target.value),
-                  sold: Number(e.target.value),
-                })
-              }
-              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none"
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs bg-stone-100 text-stone-600 cursor-not-allowed focus:outline-none"
+              title="Tiket terjual dihitung otomatis dari transaksi lunas (read-only)"
             />
           </div>
         </div>
