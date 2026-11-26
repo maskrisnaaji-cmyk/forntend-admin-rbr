@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Clock, Coffee, RefreshCw } from 'lucide-react';
@@ -20,12 +20,32 @@ import { PaymentDetailModal } from './PaymentDetailModal';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 const ORDER_POLL_INTERVAL_MS = 5000;
 
-/** Mapping row dari backend → OrderItem UI */
+/** Mapping row dari backend → OrderItem UI
+ *  Mendukung nilai order_status/status dari backend:
+ *  - 'menunggu' | 'pending' | 'unpaid' | 'menunggu bayar' → 'menunggu'
+ *  - 'disiapkan' | 'sedang diproses' | 'processing' | 'paid' | 'diproses' → 'disiapkan'
+ *  - 'selesai' | 'completed' | 'done' | 'sukses' | 'success' → 'selesai'
+ */
 function mapOrderRow(d: any): OrderItem {
-  const statusRaw: string = (d.order_status || d.status || 'menunggu').toLowerCase();
+  const statusRaw: string = (d.order_status || d.status || 'menunggu').toLowerCase().trim();
   let status: OrderStatus = 'menunggu';
-  if (statusRaw === 'disiapkan' || statusRaw === 'sedang diproses') status = 'disiapkan';
-  else if (statusRaw === 'selesai') status = 'selesai';
+  if (
+    statusRaw === 'disiapkan' ||
+    statusRaw === 'sedang diproses' ||
+    statusRaw === 'diproses' ||
+    statusRaw === 'processing' ||
+    statusRaw === 'paid'
+  ) {
+    status = 'disiapkan';
+  } else if (
+    statusRaw === 'selesai' ||
+    statusRaw === 'completed' ||
+    statusRaw === 'done' ||
+    statusRaw === 'sukses' ||
+    statusRaw === 'success'
+  ) {
+    status = 'selesai';
+  }
 
   const totalStr = d.total ||
     (d.total_price ? `Rp ${Number(d.total_price).toLocaleString('id-ID')}` : 'Rp 0');
@@ -256,7 +276,17 @@ export const KedaiContent: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
-  const filteredOrders = orders.filter((o) => {
+  /**
+   * Pesanan yang masuk ke antrean aktif: HANYA yang sudah dibayar (PAID)
+   * dan belum selesai. Pesanan UNPAID/EXPIRED tidak boleh tampil di antrean.
+   */
+  const paidActiveOrders = orders.filter((o) => {
+    const isPaid = o.payment_status === 'PAID';
+    const isActive = o.status !== 'selesai';
+    return isPaid && isActive;
+  });
+
+  const filteredOrders = paidActiveOrders.filter((o) => {
     const matchFilter = filter === 'semua' ? true : o.status === filter;
     const pm = (o.payment_method || o.payment_type || '').toLowerCase();
     const isQris = pm.includes('qris');
@@ -684,7 +714,7 @@ export const KedaiContent: React.FC = () => {
                 : 'bg-brand-cream-accent text-brand-text'
             }`}
           >
-            {orders.length}
+            {paidActiveOrders.length}
           </span>
         </button>
 

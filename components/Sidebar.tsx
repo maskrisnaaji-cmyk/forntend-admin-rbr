@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -28,10 +28,12 @@ type NotificationRow = {
   type?: string;
 };
 
+/** Status pembayaran yang dianggap "sudah dibayar" */
+const KEDAI_PAID_STATUSES = ['paid', 'settlement', 'capture', 'success'];
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 const notificationTypesByMenu: Record<string, string[]> = {
-  kedai: ['order', 'kedai'],
   agenda: ['event', 'agenda', 'ticket'],
   pustaka: ['book', 'library', 'pustaka'],
   peminjaman: ['loan', 'borrow', 'peminjaman'],
@@ -49,6 +51,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const router = useRouter();
   const adminProfile = useAdminProfile();
   const [notificationCounts, setNotificationCounts] = useState<Record<string, number>>({});
+  const [kedaiActiveCount, setKedaiActiveCount] = useState<number>(0);
+
+  /** Hitung badge Kedai Kopi dari jumlah pesanan aktif (bukan selesai) */
+  const fetchKedaiActiveCount = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/kedai/orders`, {
+        cache: 'no-store',
+        signal,
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const rows: any[] = Array.isArray(payload) ? payload : (payload.data ?? []);
+      const activeCount = rows.filter((row) => {
+        // Hanya hitung pesanan yang sudah dibayar DAN belum selesai
+        const payStatus = String(row.payment_status || '').toLowerCase().trim();
+        const isPaid = KEDAI_PAID_STATUSES.includes(payStatus);
+        const orderStatus = String(row.order_status || row.status || '').toLowerCase().trim();
+        const isCompleted = orderStatus === 'selesai' || orderStatus === 'completed' || orderStatus === 'done' || orderStatus === 'success'|| orderStatus === 'sukses';
+        return isPaid && !isCompleted;
+      }).length;
+      setKedaiActiveCount(activeCount);
+    } catch (error) {
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        console.warn('[Sidebar kedai] Gagal memuat pesanan aktif kedai:', error);
+      }
+    }
+  }, []);
 
   const fetchNotificationCounts = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -81,14 +110,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const controller = new AbortController();
+    fetchKedaiActiveCount(controller.signal);
     fetchNotificationCounts(controller.signal);
-    const interval = window.setInterval(() => fetchNotificationCounts(), 15000);
+    const interval = window.setInterval(() => {
+      fetchKedaiActiveCount();
+      fetchNotificationCounts();
+    }, 15000);
 
     return () => {
       controller.abort();
       window.clearInterval(interval);
     };
-  }, [fetchNotificationCounts]);
+  }, [fetchKedaiActiveCount, fetchNotificationCounts]);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
@@ -156,7 +189,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.id === 'dashboard' && pathname === '/') || activeTab === item.id;
-            const notificationCount = notificationCounts[item.id] || 0;
+            // Kedai Kopi: badge dihitung dari jumlah pesanan aktif (bukan notifikasi)
+            const badgeCount = item.id === 'kedai'
+              ? kedaiActiveCount
+              : (notificationCounts[item.id] || 0);
             return (
               <Link
                 key={item.id}
@@ -177,15 +213,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Icon size={18} className="shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                {notificationCount > 0 && (
+                {badgeCount > 0 && (
                   <span
-                    aria-label={`${notificationCount} notifikasi belum dibaca`}
-                    title={`${notificationCount} notifikasi belum dibaca`}
+                    aria-label={item.id === 'kedai' ? `${badgeCount} pesanan aktif` : `${badgeCount} notifikasi belum dibaca`}
+                    title={item.id === 'kedai' ? `${badgeCount} pesanan aktif` : `${badgeCount} notifikasi belum dibaca`}
                     className={`inline-flex min-w-5 h-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none ${
                       isActive ? 'bg-brand-maroon text-white' : 'bg-brand-gold text-brand-maroon'
                     }`}
                   >
-                    {notificationCount > 99 ? '99+' : notificationCount}
+                    {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
               </Link>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -39,6 +39,17 @@ export default function DashboardPage() {
       if (res.ok) {
         const json = await res.json();
         const payload: DashboardData = json.data ?? json;
+        // Filter activeOrders client-side: hanya tampilkan yang sudah dibayar dan belum selesai
+        const PAID_STATUSES = ['paid', 'settlement', 'capture', 'success'];
+        if (Array.isArray(payload.activeOrders)) {
+          payload.activeOrders = payload.activeOrders.filter((order) => {
+            const payStatus = String(order.payment_status || '').toLowerCase();
+            const isPaid = PAID_STATUSES.includes(payStatus);
+            const orderSt = String(order.order_status || order.status || '').toLowerCase();
+            const isCompleted = orderSt === 'selesai' || orderSt === 'completed' || orderSt === 'done' || orderSt === 'success' || orderSt === 'sukses';
+            return isPaid && !isCompleted;
+          });
+        }
         setData(payload);
       }
     } catch (err) {
