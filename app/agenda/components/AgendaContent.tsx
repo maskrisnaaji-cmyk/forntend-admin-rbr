@@ -80,21 +80,21 @@ function mapBackendEvent(d: any, paidTicketsMap: Record<number, number> = {}): E
 
   // Parse ticket tiers jika tersedia di d.presale_tiers atau d.ticket_tiers
   let tiers: TicketTier[] = [];
-  if (Array.isArray(d.ticket_tiers) && d.ticket_tiers.length > 0) {
-    tiers = d.ticket_tiers;
-  } else if (Array.isArray(d.presale_tiers) && d.presale_tiers.length > 0) {
+  if (Array.isArray(d.presale_tiers) && d.presale_tiers.length > 0) {
     tiers = d.presale_tiers;
+  } else if (Array.isArray(d.ticket_tiers) && d.ticket_tiers.length > 0) {
+    tiers = d.ticket_tiers;
   } else {
-    // Generate 3 kategori standar: Presale, Reguler, OTS
+    // Generate 3 kategori standar: Presale 1, Presale 2, Reguler
     let basePrice = Number(d.price) || 0;
     if (basePrice > 0 && basePrice < 1000) basePrice *= 1000;
-    const qPresale = Math.round(quota * 0.3) || 15;
-    const qReguler = Math.round(quota * 0.5) || 25;
-    const qOTS = Math.max(0, quota - qPresale - qReguler) || 10;
+    const qP1 = Math.max(5, Math.floor(quota * 0.25)) || 15;
+    const qP2 = Math.max(5, Math.floor(quota * 0.35)) || 20;
+    const qReg = Math.max(1, quota - qP1 - qP2) || 15;
     tiers = [
-      { tier_name: 'Presale', tier_order: 1, price: Math.max(0, basePrice - 10000), quota: qPresale, is_active: true },
-      { tier_name: 'Reguler', tier_order: 2, price: basePrice, quota: qReguler, is_active: true },
-      { tier_name: 'OTS', tier_order: 3, price: basePrice + 10000, quota: qOTS, is_active: true },
+      { tier_name: 'Presale 1', tier_order: 1, price: Math.round(basePrice * 0.7), quota: qP1, is_active: true },
+      { tier_name: 'Presale 2', tier_order: 2, price: Math.round(basePrice * 0.85), quota: qP2, is_active: true },
+      { tier_name: 'Reguler', tier_order: 3, price: basePrice, quota: qReg, is_active: true },
     ];
   }
 
@@ -140,12 +140,12 @@ function mapBackendEvent(d: any, paidTicketsMap: Record<number, number> = {}): E
     time: d.time || '',
     location: d.location || 'Pendopo Utama RBR',
     price: formattedPrice,
-    priceRaw: rawPrice,
+    priceRaw: d.active_price !== undefined ? Number(d.active_price) : rawPrice,
     sold: bookedCount,
     booked_count: bookedCount,
     quota,
-    remaining_tickets: remaining,
-    is_available: isAvailable,
+    remaining_tickets: d.active_remaining !== undefined ? Number(d.active_remaining) : remaining,
+    is_available: d.all_soldout ? false : isAvailable,
     status,
     status_approval: d.status_approval || (d.status === 'Menunggu Persetujuan' ? 'pending' : undefined),
     image: d.image || d.banner_image || '',
@@ -156,6 +156,12 @@ function mapBackendEvent(d: any, paidTicketsMap: Record<number, number> = {}): E
     description: d.description || '',
     ticket_tiers: tiers,
     presale_tiers: tiers,
+    active_tier: d.active_tier || null,
+    active_price: d.active_price !== undefined ? Number(d.active_price) : rawPrice,
+    active_quota: d.active_quota !== undefined ? Number(d.active_quota) : quota,
+    active_remaining: d.active_remaining !== undefined ? Number(d.active_remaining) : remaining,
+    current_tier_name: d.current_tier_name || null,
+    all_soldout: d.all_soldout !== undefined ? Boolean(d.all_soldout) : !isAvailable,
   };
 }
 
@@ -248,9 +254,9 @@ export const AgendaContent: React.FC = () => {
     setSaveError(null);
     setSelectedBannerFile(null);
     const initialTiers: TicketTier[] = [
-      { tier_name: 'Presale', tier_order: 1, price: 15000, quota: 15, is_active: true },
-      { tier_name: 'Reguler', tier_order: 2, price: 25000, quota: 25, is_active: true },
-      { tier_name: 'OTS', tier_order: 3, price: 35000, quota: 10, is_active: true },
+      { tier_name: 'Presale 1', tier_order: 1, price: 15000, quota: 15, is_active: true },
+      { tier_name: 'Presale 2', tier_order: 2, price: 25000, quota: 20, is_active: true },
+      { tier_name: 'Reguler', tier_order: 3, price: 35000, quota: 15, is_active: true },
     ];
     const totalQuota = initialTiers.reduce((acc, t) => acc + (t.quota || 0), 0);
     const minPrice = Math.min(...initialTiers.map((t) => t.price));
@@ -289,14 +295,14 @@ export const AgendaContent: React.FC = () => {
       rawPriceNum = rawPriceNum * 1000;
     }
 
-    const tiers: TicketTier[] = (event.ticket_tiers && event.ticket_tiers.length > 0)
-      ? event.ticket_tiers
-      : (event.presale_tiers && event.presale_tiers.length > 0)
+    const tiers: TicketTier[] = (event.presale_tiers && event.presale_tiers.length > 0)
       ? event.presale_tiers
+      : (event.ticket_tiers && event.ticket_tiers.length > 0)
+      ? event.ticket_tiers
       : [
-          { tier_name: 'Presale', tier_order: 1, price: Math.max(0, rawPriceNum - 10000), quota: Math.round((event.quota || 50) * 0.3) || 15, is_active: true },
-          { tier_name: 'Reguler', tier_order: 2, price: rawPriceNum, quota: Math.round((event.quota || 50) * 0.5) || 25, is_active: true },
-          { tier_name: 'OTS', tier_order: 3, price: rawPriceNum + 10000, quota: Math.max(0, (event.quota || 50) - (Math.round((event.quota || 50) * 0.3) || 15) - (Math.round((event.quota || 50) * 0.5) || 25)) || 10, is_active: true },
+          { tier_name: 'Presale 1', tier_order: 1, price: Math.max(0, Math.round(rawPriceNum * 0.7)), quota: Math.max(5, Math.floor((event.quota || 50) * 0.25)), is_active: true },
+          { tier_name: 'Presale 2', tier_order: 2, price: Math.max(0, Math.round(rawPriceNum * 0.85)), quota: Math.max(5, Math.floor((event.quota || 50) * 0.35)), is_active: true },
+          { tier_name: 'Reguler', tier_order: 3, price: rawPriceNum || 35000, quota: Math.max(1, (event.quota || 50) - Math.floor((event.quota || 50) * 0.6)), is_active: true },
         ];
 
     const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
@@ -325,13 +331,15 @@ export const AgendaContent: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
 
-    // Ambil ticket tiers
-    const tiers: TicketTier[] = (currentEvent.ticket_tiers && currentEvent.ticket_tiers.length > 0)
+    // Ambil ticket tiers (Presale 1, Presale 2, Reguler)
+    const tiers: TicketTier[] = (currentEvent.presale_tiers && currentEvent.presale_tiers.length > 0)
+      ? currentEvent.presale_tiers
+      : (currentEvent.ticket_tiers && currentEvent.ticket_tiers.length > 0)
       ? currentEvent.ticket_tiers
       : [
-          { tier_name: 'Presale', tier_order: 1, price: 15000, quota: 15, is_active: true },
-          { tier_name: 'Reguler', tier_order: 2, price: 25000, quota: 25, is_active: true },
-          { tier_name: 'OTS', tier_order: 3, price: 35000, quota: 10, is_active: true },
+          { tier_name: 'Presale 1', tier_order: 1, price: 15000, quota: 15, is_active: true },
+          { tier_name: 'Presale 2', tier_order: 2, price: 25000, quota: 20, is_active: true },
+          { tier_name: 'Reguler', tier_order: 3, price: 35000, quota: 15, is_active: true },
         ];
 
     // Total kuota otomatis dari jumlah ketiga kategori
@@ -393,6 +401,10 @@ export const AgendaContent: React.FC = () => {
       }
     }
 
+    const p1 = tiers.find((t) => t.tier_name === 'Presale 1' || t.tier_name.toLowerCase().includes('presale 1')) || tiers[0];
+    const p2 = tiers.find((t) => t.tier_name === 'Presale 2' || t.tier_name.toLowerCase().includes('presale 2')) || tiers[1];
+    const reg = tiers.find((t) => t.tier_name === 'Reguler' || t.tier_name.toLowerCase().includes('reguler')) || tiers[2];
+
     const payload = {
       title: currentEvent.title,
       date: isoDate,
@@ -408,6 +420,12 @@ export const AgendaContent: React.FC = () => {
       category: currentEvent.category || 'Budaya',
       ticket_tiers: tiers,
       presale_tiers: tiers,
+      presale1_price: p1 ? Number(p1.price) : numericPrice,
+      presale1_quota: p1 ? Number(p1.quota) : 15,
+      presale2_price: p2 ? Number(p2.price) : numericPrice,
+      presale2_quota: p2 ? Number(p2.quota) : 20,
+      reguler_price: reg ? Number(reg.price) : numericPrice,
+      reguler_quota: reg ? Number(reg.quota) : 15,
     };
 
     // Baca token dari localStorage jika tersedia

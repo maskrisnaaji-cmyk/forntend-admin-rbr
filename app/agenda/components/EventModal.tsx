@@ -37,6 +37,65 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   const displayImage = bannerPreview || currentEvent.image || '';
 
+  // Ambil list tier aktif (Presale 1, Presale 2, Reguler)
+  const currentTiersList = (currentEvent.presale_tiers && currentEvent.presale_tiers.length > 0)
+    ? currentEvent.presale_tiers
+    : (currentEvent.ticket_tiers && currentEvent.ticket_tiers.length > 0)
+    ? currentEvent.ticket_tiers
+    : [
+        { tier_name: 'Presale 1', tier_order: 1, price: 15000, quota: 15, is_active: true },
+        { tier_name: 'Presale 2', tier_order: 2, price: 25000, quota: 20, is_active: true },
+        { tier_name: 'Reguler', tier_order: 3, price: 35000, quota: 15, is_active: true },
+      ];
+
+  const getTier = (name: 'Presale 1' | 'Presale 2' | 'Reguler') => {
+    return (
+      currentTiersList.find((t) => t.tier_name === name) ||
+      currentTiersList.find((t) => name === 'Presale 1' && t.tier_name.toLowerCase().includes('presale 1')) ||
+      currentTiersList.find((t) => name === 'Presale 2' && t.tier_name.toLowerCase().includes('presale 2')) ||
+      currentTiersList.find((t) => name === 'Reguler' && t.tier_name.toLowerCase().includes('reguler')) ||
+      (name === 'Presale 1' ? currentTiersList.find((t) => t.tier_name === 'Presale') : undefined)
+    );
+  };
+
+  const handleTierChange = (
+    name: 'Presale 1' | 'Presale 2' | 'Reguler',
+    field: 'price' | 'quota',
+    value: number
+  ) => {
+    const defaultTiers = [
+      { tier_name: 'Presale 1', tier_order: 1, price: 15000, quota: 15, is_active: true },
+      { tier_name: 'Presale 2', tier_order: 2, price: 25000, quota: 20, is_active: true },
+      { tier_name: 'Reguler', tier_order: 3, price: 35000, quota: 15, is_active: true },
+    ];
+
+    const updated = defaultTiers.map((dt) => {
+      const existing = getTier(dt.tier_name as any);
+      return {
+        ...dt,
+        price: existing?.price !== undefined ? existing.price : dt.price,
+        quota: existing?.quota !== undefined ? existing.quota : dt.quota,
+      };
+    });
+
+    const targetIdx = updated.findIndex((t) => t.tier_name === name);
+    if (targetIdx >= 0) {
+      updated[targetIdx][field] = value;
+    }
+
+    const totalQuota = updated.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
+    const activePrices = updated.map((t) => Number(t.price)).filter((p) => !isNaN(p) && p >= 0);
+    const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : 0;
+
+    onChange({
+      ticket_tiers: updated,
+      presale_tiers: updated,
+      quota: totalQuota,
+      priceRaw: minPrice,
+      price: String(minPrice),
+    });
+  };
+
   return (
     <AdminModal
       isOpen={isOpen}
@@ -135,55 +194,44 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
         </div>
 
-        {/* 3 Kategori Tiket: Presale, Reguler, OTS */}
+        {/* 3 Kategori Tiket: Presale 1, Presale 2, Reguler */}
         <div className="rounded-xl border border-brand-cream-accent bg-brand-cream-card/30 p-3.5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-brand-text text-xs">
-              Kategori &amp; Kuota Tiket (Presale, Reguler, OTS)
-            </span>
-            <span className="rounded-lg bg-brand-maroon/10 px-2 py-0.5 text-[11px] font-bold text-brand-maroon">
+            <div>
+              <span className="font-bold text-brand-text text-xs block">
+                Pengaturan Kuota &amp; Harga Tiket (Presale 1, Presale 2, Reguler)
+              </span>
+              <span className="text-[10px] text-brand-muted">
+                Penjualan otomatis berurutan: Presale 1 &rarr; Presale 2 &rarr; Reguler
+              </span>
+            </div>
+            <span className="rounded-lg bg-brand-maroon/10 px-2 py-0.5 text-[11px] font-bold text-brand-maroon shrink-0">
               Total Kuota: {currentEvent.quota ?? 0} Tiket
             </span>
           </div>
 
-          {/* Baris 1: Presale */}
+          {/* Baris 1: Presale 1 */}
           <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
             <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
               <div>
-                <p className="font-bold text-brand-text text-xs leading-none">Presale</p>
-                <p className="text-[10px] text-brand-muted mt-0.5">Tiket Dini / Early Bird</p>
+                <p className="font-bold text-brand-text text-xs leading-none">Presale 1</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Tier Pertama (Early Bird)</p>
               </div>
             </div>
             <div className="col-span-6 sm:col-span-4">
               <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
-                Harga (Rp)
+                Harga Presale 1 (Rp)
               </label>
               <input
                 type="number"
                 min="0"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Presale')?.price ??
-                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'Presale');
-                  if (idx >= 0) tiers[idx].price = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
-                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
-                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
-                }}
+                value={getTier('Presale 1')?.price ?? 15000}
+                onChange={(e) => handleTierChange('Presale 1', 'price', Math.max(0, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="0"
+                placeholder="15000"
               />
             </div>
             <div className="col-span-6 sm:col-span-4">
@@ -192,68 +240,39 @@ export const EventModal: React.FC<EventModalProps> = ({
               </label>
               <input
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Presale')?.quota ?? 15
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'Presale');
-                  if (idx >= 0) tiers[idx].quota = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  onChange({ ticket_tiers: tiers, quota: totalQuota });
-                }}
+                value={getTier('Presale 1')?.quota ?? 15}
+                onChange={(e) => handleTierChange('Presale 1', 'quota', Math.max(1, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
                 placeholder="15"
               />
             </div>
           </div>
 
-          {/* Baris 2: Reguler */}
+          {/* Baris 2: Presale 2 */}
           <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
             <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+              <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shrink-0" />
               <div>
-                <p className="font-bold text-brand-text text-xs leading-none">Reguler</p>
-                <p className="text-[10px] text-brand-muted mt-0.5">Tiket Standar Online</p>
+                <p className="font-bold text-brand-text text-xs leading-none">Presale 2</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Tier Kedua (Mid Presale)</p>
               </div>
             </div>
             <div className="col-span-6 sm:col-span-4">
               <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
-                Harga (Rp)
+                Harga Presale 2 (Rp)
               </label>
               <input
                 type="number"
                 min="0"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Reguler')?.price ??
-                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'Reguler');
-                  if (idx >= 0) tiers[idx].price = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
-                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
-                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
-                }}
+                value={getTier('Presale 2')?.price ?? 25000}
+                onChange={(e) => handleTierChange('Presale 2', 'price', Math.max(0, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="0"
+                placeholder="25000"
               />
             </div>
             <div className="col-span-6 sm:col-span-4">
@@ -262,68 +281,39 @@ export const EventModal: React.FC<EventModalProps> = ({
               </label>
               <input
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'Reguler')?.quota ?? 25
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'Reguler');
-                  if (idx >= 0) tiers[idx].quota = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  onChange({ ticket_tiers: tiers, quota: totalQuota });
-                }}
+                value={getTier('Presale 2')?.quota ?? 20}
+                onChange={(e) => handleTierChange('Presale 2', 'quota', Math.max(1, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="25"
+                placeholder="20"
               />
             </div>
           </div>
 
-          {/* Baris 3: OTS */}
+          {/* Baris 3: Reguler */}
           <div className="grid grid-cols-12 gap-2.5 items-center bg-white p-2.5 rounded-xl border border-brand-cream-accent">
             <div className="col-span-12 sm:col-span-4 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-600 shrink-0" />
               <div>
-                <p className="font-bold text-brand-text text-xs leading-none">OTS</p>
-                <p className="text-[10px] text-brand-muted mt-0.5">On The Spot (Loket)</p>
+                <p className="font-bold text-brand-text text-xs leading-none">Reguler</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Tier Terakhir (Standar)</p>
               </div>
             </div>
             <div className="col-span-6 sm:col-span-4">
               <label className="block text-[10px] font-medium text-brand-muted mb-0.5">
-                Harga (Rp)
+                Harga Reguler (Rp)
               </label>
               <input
                 type="number"
                 min="0"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'OTS')?.price ??
-                  (typeof currentEvent.priceRaw === 'number' ? currentEvent.priceRaw : 0)
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'OTS');
-                  if (idx >= 0) tiers[idx].price = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  const activePrices = tiers.map((t) => t.price).filter((p) => typeof p === 'number');
-                  const minPrice = activePrices.length > 0 ? Math.min(...activePrices) : val;
-                  onChange({ ticket_tiers: tiers, quota: totalQuota, priceRaw: minPrice, price: String(minPrice) });
-                }}
+                value={getTier('Reguler')?.price ?? 35000}
+                onChange={(e) => handleTierChange('Reguler', 'price', Math.max(0, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="0"
+                placeholder="35000"
               />
             </div>
             <div className="col-span-6 sm:col-span-4">
@@ -332,26 +322,13 @@ export const EventModal: React.FC<EventModalProps> = ({
               </label>
               <input
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 required
-                value={
-                  currentEvent.ticket_tiers?.find((t) => t.tier_name === 'OTS')?.quota ?? 10
-                }
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
-                  const tiers = [...(currentEvent.ticket_tiers || [
-                    { tier_name: 'Presale', tier_order: 1, price: 0, quota: 15, is_active: true },
-                    { tier_name: 'Reguler', tier_order: 2, price: 0, quota: 25, is_active: true },
-                    { tier_name: 'OTS', tier_order: 3, price: 0, quota: 10, is_active: true },
-                  ])];
-                  const idx = tiers.findIndex((t) => t.tier_name === 'OTS');
-                  if (idx >= 0) tiers[idx].quota = val;
-                  const totalQuota = tiers.reduce((acc, t) => acc + (Number(t.quota) || 0), 0);
-                  onChange({ ticket_tiers: tiers, quota: totalQuota });
-                }}
+                value={getTier('Reguler')?.quota ?? 15}
+                onChange={(e) => handleTierChange('Reguler', 'quota', Math.max(1, Number(e.target.value)))}
                 className="w-full rounded-lg border border-brand-cream-accent p-1.5 text-xs focus:border-brand-maroon focus:outline-none"
-                placeholder="10"
+                placeholder="15"
               />
             </div>
           </div>

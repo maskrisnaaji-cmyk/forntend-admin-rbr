@@ -204,14 +204,27 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                 </span>
               </div>
 
-              {/* Badge Kuota sisa (pojok kanan) */}
-              {!isFull && quota > 0 && (
-                <div className="absolute top-3 right-3">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
+              {/* Badge Kuota sisa & Tier Aktif (pojok kanan) */}
+              <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                {!isFull && quota > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
                     {event.remaining_tickets} sisa
                   </span>
-                </div>
-              )}
+                )}
+                {event.current_tier_name && (
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm shadow-xs ${
+                    event.all_soldout || event.current_tier_name === 'Habis / Sold Out'
+                      ? 'bg-rose-600/90 text-white'
+                      : event.current_tier_name.includes('Presale 1')
+                      ? 'bg-amber-500/95 text-white'
+                      : event.current_tier_name.includes('Presale 2')
+                      ? 'bg-indigo-600/95 text-white'
+                      : 'bg-blue-600/95 text-white'
+                  }`}>
+                    Tiket: {event.current_tier_name}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Konten */}
@@ -266,6 +279,88 @@ export const EventCardList: React.FC<EventCardListProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Status Tier Aktif yang Sedang Dijual */}
+              {(() => {
+                const tiers = (event.presale_tiers && event.presale_tiers.length > 0)
+                  ? event.presale_tiers
+                  : (event.ticket_tiers && event.ticket_tiers.length > 0)
+                  ? event.ticket_tiers
+                  : [];
+
+                const activeTier = event.active_tier || tiers.find((t) => t.is_current_active || (!t.is_soldout && (t.remaining ?? (t.quota - (t.sold || 0))) > 0));
+                const activeTierName = event.all_soldout || !activeTier
+                  ? 'Habis'
+                  : (activeTier.tier_name || event.current_tier_name || 'Reguler');
+
+                return (
+                  <div className="mt-3 rounded-xl border border-brand-cream-accent/80 bg-brand-cream-card/25 p-2.5 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-brand-muted flex items-center gap-1">
+                        <Ticket size={12} className="text-brand-maroon" /> Tiket Aktif:
+                      </span>
+                      <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-extrabold ${
+                        activeTierName === 'Habis'
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                          : activeTierName.includes('Presale 1')
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                          : activeTierName.includes('Presale 2')
+                          ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
+                          : 'bg-blue-100 text-blue-800 border border-blue-300'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${activeTierName === 'Habis' ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                        {activeTierName === 'Habis' ? 'Semua Habis (Sold Out)' : activeTierName}
+                      </span>
+                    </div>
+
+                    {/* Sisa Kuota per Masing-Masing Tingkatan Tiket */}
+                    {tiers.length > 0 && (
+                      <div className="grid grid-cols-3 gap-1.5 text-center pt-1 border-t border-brand-cream-accent/50">
+                        {tiers.map((t, idx) => {
+                          const tierSold = Number(t.sold || 0);
+                          const tierQuota = Number(t.quota || 0);
+                          const tierRemaining = t.remaining !== undefined
+                            ? Number(t.remaining)
+                            : Math.max(0, tierQuota - tierSold);
+                          const isSoldOut = t.is_soldout || tierRemaining <= 0;
+                          const isCurrent = t.is_current_active || (activeTier && (t.id ? t.id === activeTier.id : t.tier_name === activeTier.tier_name));
+
+                          return (
+                            <div
+                              key={t.id || t.tier_name || idx}
+                              className={`rounded-lg p-1.5 border text-[10px] transition-all ${
+                                isCurrent
+                                  ? 'bg-white border-amber-400 shadow-xs ring-1 ring-amber-300'
+                                  : isSoldOut
+                                  ? 'bg-stone-50 border-stone-200 opacity-60'
+                                  : 'bg-white/80 border-stone-200'
+                              }`}
+                            >
+                              <p className={`font-bold text-[10px] truncate ${isCurrent ? 'text-brand-maroon' : 'text-stone-700'}`}>
+                                {t.tier_name}
+                              </p>
+                              <p className="font-extrabold text-[11px] text-stone-900 mt-0.5">
+                                {tierRemaining} <span className="text-[8.5px] font-normal text-stone-500">/ {tierQuota}</span>
+                              </p>
+                              <span
+                                className={`inline-block mt-0.5 px-1.5 py-0.2 rounded text-[8.5px] font-bold ${
+                                  isCurrent
+                                    ? 'bg-amber-100 text-amber-800 font-extrabold'
+                                    : isSoldOut
+                                    ? 'bg-rose-50 text-rose-600'
+                                    : 'bg-stone-100 text-stone-600'
+                                }`}
+                              >
+                                {isCurrent ? 'Aktif' : isSoldOut ? 'Habis' : 'Menunggu'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Progress Bar Kuota */}
               <div className="mt-4 pt-3 border-t border-brand-cream-accent/60">
