@@ -122,28 +122,29 @@ export const BookModal: React.FC<BookModalProps> = ({
           <div>
             <label className="mb-1 block font-semibold text-brand-text">Status Peminjaman</label>
             <select
-              value={currentBook.status || 'Tersedia'}
-              onChange={(e) =>
+              value={currentBook.status?.toUpperCase() === 'DIPINJAM' ? 'DIPINJAM' : 'TERSEDIA'}
+              onChange={(e) => {
+                const nextVal = e.target.value;
                 onChange({
-                  status: e.target.value,
-                  borrower: e.target.value === 'Tersedia' ? '-' : currentBook.borrower,
-                })
-              }
-              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white"
+                  status: nextVal,
+                  borrower: nextVal === 'TERSEDIA' ? '-' : (currentBook.borrower === '-' ? '' : currentBook.borrower),
+                });
+              }}
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none bg-white font-medium"
             >
-              <option value="Tersedia">Tersedia</option>
-              <option value="Dipinjam">Dipinjam</option>
+              <option value="TERSEDIA">TERSEDIA</option>
+              <option value="DIPINJAM">DIPINJAM</option>
             </select>
           </div>
           <div>
             <label className="mb-1 block font-semibold text-brand-text">Nama Peminjam</label>
             <input
               type="text"
-              disabled={currentBook.status === 'Tersedia'}
-              value={currentBook.borrower || '-'}
+              disabled={currentBook.status?.toUpperCase() !== 'DIPINJAM'}
+              value={currentBook.status?.toUpperCase() !== 'DIPINJAM' ? '-' : (currentBook.borrower || '')}
               onChange={(e) => onChange({ borrower: e.target.value })}
-              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
-              placeholder="Nama peminjam"
+              className="w-full rounded-xl border border-brand-cream-accent p-2.5 text-xs focus:border-brand-maroon focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 font-medium"
+              placeholder={currentBook.status?.toUpperCase() === 'DIPINJAM' ? "Nama peminjam saat ini" : "-"}
             />
           </div>
         </div>

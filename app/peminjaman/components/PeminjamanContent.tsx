@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Clock3, RotateCcw, X } from 'lucide-react';
+import { Check, Clock3, RotateCcw, X, RefreshCw } from 'lucide-react';
 
 type Loan = {
   id: number;
@@ -77,7 +77,16 @@ export const PeminjamanContent: React.FC = () => {
     if (!response.ok) {
       throw new Error(data.message || 'Status peminjaman gagal diperbarui.');
     }
+
+    // Panggil sinkronisasi backend dan perbarui antrean pinjam
+    await fetch('http://localhost:5000/api/loans/sync').catch(() => null);
     await fetchLoans();
+
+    // Trigger update data daftar buku di modul Pustaka agar status buku langsung kembali TERSEDIA
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('refresh_books_catalog'));
+      localStorage.setItem('rbr_books_updated_at', Date.now().toString());
+    }
   };
 
   const runAction = async (id: number, action: 'approve_request' | 'reject_request' | 'approve_extension' | 'reject_extension' | 'return') => {
@@ -91,11 +100,23 @@ export const PeminjamanContent: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Seksi Peminjaman — muncul pertama (delay 0ms) */}
-      <header className="stagger-item stagger-0">
-        <h1 className="text-xl font-bold text-brand-text">Peminjaman Buku</h1>
-        <p className="text-xs text-brand-muted">
-          Konfirmasi pengajuan, pengembalian, dan request perpanjangan dari anggota.
-        </p>
+      <header className="stagger-item stagger-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-brand-text">Peminjaman Buku</h1>
+          <p className="text-xs text-brand-muted">
+            Konfirmasi pengajuan, pengembalian, dan request perpanjangan dari anggota.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchLoans}
+          disabled={loading}
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-brand-cream-accent bg-brand-cream-card px-3.5 py-2 text-xs font-semibold text-brand-text hover:bg-brand-cream-accent transition-colors cursor-pointer disabled:opacity-60 w-fit"
+          title="Refresh data peminjaman"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <span>Refresh Data</span>
+        </button>
       </header>
 
       {error && <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</div>}

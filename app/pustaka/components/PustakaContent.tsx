@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { BookItem } from './types';
 import { BookSearchToolbar } from './BookSearchToolbar';
 import { BookTable } from './BookTable';
@@ -10,10 +10,10 @@ import { DeleteBookModal } from './DeleteBookModal';
 
 export const PustakaContent: React.FC = () => {
   const [books, setBooks] = useState<BookItem[]>([
-    { code: 'NSS-001', title: 'Dokumen Jibril', category: 'Naskah Kuno', status: 'Tersedia', borrower: '-', coverImage: '/dokumen_jibril.jpg' },
-    { code: 'NSS-008', title: 'Anjing-Anjing Menyerbu Lek Zul', category: 'Sejarah', status: 'Dipinjam', borrower: 'Dimas Anggara', coverImage: '/anjing_anjing_menyerbu_lek_zul.jpg' },
-    { code: 'NSS-012', title: 'Lipstik di Tas Doni', category: 'Seni & Budaya', status: 'Dipinjam', borrower: 'Siti Rahma', coverImage: '/lipstik_di_tas_doni.jpg' },
-    { code: 'NSS-015', title: 'Laki-Laki yang Kawin dengan Peri', category: 'Linguistik', status: 'Tersedia', borrower: '-', coverImage: '/laki_laki_yang_kawin_dengan_peri.jpg' },
+    { code: 'NSS-001', title: 'Dokumen Jibril', category: 'Naskah Kuno', status: 'TERSEDIA', borrower: '-', coverImage: '/dokumen_jibril.jpg' },
+    { code: 'NSS-008', title: 'Anjing-Anjing Menyerbu Lek Zul', category: 'Sejarah', status: 'TERSEDIA', borrower: '-', coverImage: '/anjing_anjing_menyerbu_lek_zul.jpg' },
+    { code: 'NSS-012', title: 'Lipstik di Tas Doni', category: 'Seni & Budaya', status: 'TERSEDIA', borrower: '-', coverImage: '/lipstik_di_tas_doni.jpg' },
+    { code: 'NSS-015', title: 'Laki-Laki yang Kawin dengan Peri', category: 'Linguistik', status: 'TERSEDIA', borrower: '-', coverImage: '/laki_laki_yang_kawin_dengan_peri.jpg' },
   ]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +26,7 @@ export const PustakaContent: React.FC = () => {
     code: '',
     title: '',
     category: 'Naskah Kuno',
-    status: 'Tersedia',
+    status: 'TERSEDIA',
     borrower: '-',
     coverImage: '',
     digital_url: '',
@@ -35,6 +35,7 @@ export const PustakaContent: React.FC = () => {
   const [coverPreview, setCoverPreview] = useState<string>('');
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,7 +53,7 @@ export const PustakaContent: React.FC = () => {
       code: nextCode,
       title: '',
       category: 'Naskah Kuno',
-      status: 'Tersedia',
+      status: 'TERSEDIA',
       borrower: '-',
       coverImage: '',
       digital_url: '',
@@ -69,32 +70,58 @@ export const PustakaContent: React.FC = () => {
     setFormModalOpen(true);
   };
 
-  // Fetch books from backend on mount
+  // Fetch books from backend on mount and sync status
   const fetchBooksFromBackend = async () => {
     try {
+      setIsRefreshing(true);
       const res = await fetch('http://localhost:5000/api/books');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const mapped: BookItem[] = data.map((d: any) => ({
-            code: d.code || `NSS-${String(d.id).padStart(3, '0')}`,
-            title: d.title || '',
-            category: d.category || 'Naskah Kuno',
-            status: d.status || 'Tersedia',
-            borrower: d.borrower || '-',
-            coverImage: d.cover_image || '',
-            digital_url: d.digital_url || d.digitalUrl || '',
-          }));
+          const mapped: BookItem[] = data.map((d: any) => {
+            const rawStatus = (d.status || '').trim();
+            const isAvailable =
+              !rawStatus ||
+              rawStatus.toUpperCase() === 'TERSEDIA' ||
+              rawStatus.toLowerCase().includes('tersedia');
+            const status = isAvailable ? 'TERSEDIA' : 'DIPINJAM';
+
+            return {
+              code: d.code || `NSS-${String(d.id).padStart(3, '0')}`,
+              title: d.title || '',
+              category: d.category || 'Naskah Kuno',
+              status,
+              borrower: isAvailable ? '-' : (d.borrower && d.borrower !== '-' ? d.borrower : 'Anggota'),
+              coverImage: d.cover_image || d.image || d.imageUrl || '',
+              digital_url: d.digital_url || d.digitalUrl || '',
+            };
+          });
           setBooks(mapped);
         }
       }
     } catch (e) {
       console.warn('Backend books offline, using local state:', e);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   React.useEffect(() => {
     fetchBooksFromBackend();
+
+    const handleRefresh = () => {
+      fetchBooksFromBackend();
+    };
+
+    window.addEventListener('refresh_books_catalog', handleRefresh);
+    window.addEventListener('focus', handleRefresh);
+    window.addEventListener('storage', handleRefresh);
+
+    return () => {
+      window.removeEventListener('refresh_books_catalog', handleRefresh);
+      window.removeEventListener('focus', handleRefresh);
+      window.removeEventListener('storage', handleRefresh);
+    };
   }, []);
 
   const handleSaveBook = async (e: React.FormEvent) => {
@@ -155,6 +182,13 @@ export const PustakaContent: React.FC = () => {
       return;
     }
 
+    const isAvail =
+      (currentBook.status || '').toUpperCase() === 'TERSEDIA' ||
+      (currentBook.status || '').toLowerCase().includes('tersedia') ||
+      !currentBook.status;
+    const saveStatus = isAvail ? 'TERSEDIA' : 'DIPINJAM';
+    const saveBorrower = isAvail ? '-' : (currentBook.borrower && currentBook.borrower !== '-' ? currentBook.borrower : 'Anggota Pustaka');
+
     try {
       if (isEditing) {
         await fetch(`http://localhost:5000/api/books/${currentBook.code}`, {
@@ -164,8 +198,8 @@ export const PustakaContent: React.FC = () => {
             code: currentBook.code,
             title: currentBook.title,
             category: currentBook.category,
-            status: currentBook.status,
-            borrower: currentBook.borrower,
+            status: saveStatus,
+            borrower: saveBorrower,
             cover_image: finalCoverUrl,
             digital_url: currentBook.digital_url || '',
           }),
@@ -178,8 +212,8 @@ export const PustakaContent: React.FC = () => {
             code: currentBook.code,
             title: currentBook.title,
             category: currentBook.category,
-            status: currentBook.status,
-            borrower: currentBook.borrower,
+            status: saveStatus,
+            borrower: saveBorrower,
             cover_image: finalCoverUrl,
             digital_url: currentBook.digital_url || '',
           }),
@@ -190,15 +224,19 @@ export const PustakaContent: React.FC = () => {
       console.error('Gagal sync buku ke backend:', e);
       if (isEditing) {
         setBooks((prev) =>
-          prev.map((b) => (b.code === currentBook.code ? ({ ...currentBook, coverImage: finalCoverUrl } as BookItem) : b))
+          prev.map((b) =>
+            b.code === currentBook.code
+              ? ({ ...currentBook, status: saveStatus, borrower: saveBorrower, coverImage: finalCoverUrl } as BookItem)
+              : b
+          )
         );
       } else {
         const newBook: BookItem = {
           code: currentBook.code || `NSS-${Date.now()}`,
           title: currentBook.title || '',
           category: currentBook.category || 'Naskah Kuno',
-          status: currentBook.status || 'Tersedia',
-          borrower: currentBook.borrower || '-',
+          status: saveStatus,
+          borrower: saveBorrower,
           coverImage: finalCoverUrl,
           digital_url: currentBook.digital_url || '',
         };
@@ -251,13 +289,26 @@ export const PustakaContent: React.FC = () => {
             Kelola koleksi naskah kuno, buku sejarah, dan aktivitas peminjaman
           </p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
-        >
-          <Plus size={16} />
-          <span>Tambah Judul Pustaka</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchBooksFromBackend}
+            disabled={isRefreshing}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-brand-cream-accent bg-brand-cream-card px-3.5 py-2.5 text-xs font-semibold text-brand-text hover:bg-brand-cream-accent transition-colors cursor-pointer disabled:opacity-60"
+            title="Refresh katalog buku"
+          >
+            <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Refresh Data</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-maroon px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-brand-maroon-light transition-colors cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Tambah Judul Pustaka</span>
+          </button>
+        </div>
       </header>
 
       {/* Seksi 2: Toolbar & Tabel Pustaka (delay 100ms) */}
